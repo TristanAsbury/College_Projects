@@ -1,30 +1,57 @@
 #include <iostream>
 #include <string.h>
+#include <fstream>
 
 using namespace std;
 
 struct record {
     char name[41];
     int keyId;
+
+    record(){
+        strcpy(name, "");
+        keyId = -1;
+    }
 };
 
-int addRecord(char name[41], int tableSize, int key, record table[], int method);
-int searchTable(int tableSize, int key, record table[], int method);
+int addRecord(record table[], int tableSize, int key, char name[41] , int method);
+void addFromFile(record table[], int tableSize, istream &inFile, int method);
+int searchRecord(record table[], int tableSize, int key,  int method);
 int deleteRecord(record table[], int tableSize, int key, int method);
-void readTable(record[], int);
-void clearTable(record[], int);
+void readTable(record table[], int tableSize);
+void clearTable(record table[], int tableSize);
 
 int main(){
-    const int TABLE_SIZE = 11; //SETS INITIAL TABLE SIZE
+    const int TABLE_SIZE = 19; //SETS INITIAL TABLE SIZE
     record table[TABLE_SIZE]; //CREATES ARRAY OF STRUCTS
-    clearTable(table, TABLE_SIZE); //"EMPTIES" ALL RECORDS
-
+    string filePath;
+    ifstream inFile;
     int input = 0;
-    int method;
-    char enteredName[41];
     int enteredId;
+    char enteredName[41];
+    int method;
+    //FIRST THING: ASK THE USER FOR A COLLISION RESOLUTION METHOD
     cout << "Enter Collision Resolution Method | 1: Linear Probing | 2: Quadratic Probing | 3: Double Hashing" << endl;
     cin >> method;
+
+    //SECOND: ASK IF THEY ARE IMPORTING ANY RECORDS FROM A FILE
+    cout << "Are you entering records from a file?\n";
+    cout << "1: Yes | 0: No\n";
+    cin >> input;
+    if(input == 1){
+        cout << "Enter path to record file: \n";
+        cin >> filePath;
+        inFile.open(filePath);
+        
+        while(inFile.fail()){
+            cout << "Invalid path to record file, re-enter:\n";
+            cin >> filePath;
+            inFile.open(filePath);
+        }
+        addFromFile(table, TABLE_SIZE, inFile, method);
+    }
+
+    
     while(input != -1){
         cout << "///////////////////\n";
         cout << "Select Option:\n";
@@ -39,7 +66,7 @@ int main(){
                 cout << "Invalid ID Number. Re-enter: " << endl;
                 cin >> enteredId;
             }
-            if(addRecord(enteredName, TABLE_SIZE, enteredId, table, method) == 1){
+            if(addRecord(table, TABLE_SIZE, enteredId, enteredName, method) == 1){
                 cout << "Successfully added record!\n";
             } else {
                 cout << "Error adding record.\n";
@@ -47,11 +74,11 @@ int main(){
         } else if(input == 2){ //SEARCH RECORDS AND RETURN INDEX
             cout << "Enter key: " << endl;
             cin >> enteredId;
-            int foundPos = searchTable(TABLE_SIZE, enteredId, table, method);
+            int foundPos = searchRecord(table, TABLE_SIZE, enteredId, method);
             if(foundPos != -1){
                 cout << "Found key: " << enteredId << " at index: " << foundPos << endl;
             } else {
-                cout << "Error. Could not find record." << endl;
+                cout << "Error finding record." << endl;
             }
         } else if(input == 3){ //DELETE RECORD AND RETURN SUCCESS
             cout << "Deleting record. Enter key: " << endl;
@@ -68,8 +95,11 @@ int main(){
     return 0;
 }
 
-//
-int addRecord(char name[41], int tableSize, int key, record table[], int method){
+//ADD RECORD
+//INPUT: 
+//name: THe name of the record
+//tableSize
+int addRecord(record table[], int tableSize, int key, char name[41] , int method){
     int index = key % tableSize; //Mod 19
     bool posFound = false;
 
@@ -93,7 +123,7 @@ int addRecord(char name[41], int tableSize, int key, record table[], int method)
         //Return the result depending if the spot was found
     } else if(method == 2){ //QUADRATIC PROBING
         int postCount = 1;
-        while(posFound == false && postCount != (tableSize+1)/2){
+        while(posFound == false && postCount < (tableSize+1)/2){
             int newIndex = (index+postCount*postCount)%tableSize;
             cout << "Attempting to insert key at index: " << newIndex << endl;
             if(table[newIndex].keyId == -1){
@@ -106,7 +136,7 @@ int addRecord(char name[41], int tableSize, int key, record table[], int method)
     } else if(method == 3){ //DOUBLE HASHING
         int postCount = 1;
         int fixedInt = key/tableSize; 
-        while(posFound == false && postCount != tableSize){
+        while(posFound == false && postCount < tableSize){
             index = (index + fixedInt) % tableSize;
             cout << "Attempting to insert key at index: " << index << endl;
             if(table[index].keyId == -1){
@@ -120,8 +150,15 @@ int addRecord(char name[41], int tableSize, int key, record table[], int method)
     return posFound;
 }
 
-//Search table is pretty much the same as the insert method
-int searchTable(int tableSize, int key, record table[], int method){
+//SEARCH TABLE
+//INPUT:
+//tableSize: Size of table for the for loops
+//key: Key for searching
+//table: The table in which will have the same size as tableSize, and has all the records
+//method: The collision resolution method used throughout the program
+//OUTPUT:
+//(integer) index: IF the key is found at an index, it will return the index, otherwise it will return -1
+int searchRecord(record table[], int tableSize, int key,  int method){
     int index = key % tableSize; //Mod 19
     bool posFound = false;
     cout << "Trying to probe for key at index: " << index << endl;
@@ -156,25 +193,33 @@ int searchTable(int tableSize, int key, record table[], int method){
             
         }
     } else if(method == 3){ //DOUBLE HASHING
-        int postCount = 1;
+        int postCount = 0;
         int fixedInt = key/tableSize; 
         while(posFound == false && postCount != tableSize){
+            postCount++;
             index = (index + fixedInt) % tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
             if(table[index].keyId == -1){
                 return -1;
-            } else if(table[index].keyId == -1){
+            } else if(table[index].keyId == key){
                 return index;
             }
-            postCount++;
         }
     }
     return -1;
 }
 
+//DELETE RECORD
+//INPUT:
+//table: The table in which will have the same size as tableSize, and has all the records
+//tableSize: Size of table for the for loops
+//key: Key for searching
+//method: The collision resolution method used throughout the program
+//OUTPUT:
+//(integer) success: IF the key is found and deleted successfully, the function will return 1, else -1
 int deleteRecord(record table[], int tableSize, int key, int method){
     //Use search method, and if it finds the index, then set keyId to -1 at that index
-    int index = searchTable(tableSize, key, table, method);
+    int index = searchRecord(table, tableSize, key, method);
     if(index == -1){
         return -1;
     } else {
@@ -184,16 +229,23 @@ int deleteRecord(record table[], int tableSize, int key, int method){
     return -1;
 }
 
-void readTable(record table[], int tableSize){
-    for(int i = 0; i < tableSize; i++){
-        cout << "Index " << i << ": " << "Name: " << table[i].name << ", ID: " << table[i].keyId << endl;
+void addFromFile(record table[], int tableSize, ifstream &inFile, int method){
+    while(inFile.good()){
+        char name[41];
+        int key;
+        inFile >> name;
+        inFile >> key;
+        addRecord(table, tableSize, key, name, method);
     }
 }
 
-
-void clearTable(record table[], int tableSize){
+//READ TABLE
+//INPUT:
+//table: The table in which will have the same size as tableSize, and has all the records
+//tableSize: SIze of table for the for loops
+//OUTPUT: None, will print the records in the table
+void readTable(record table[], int tableSize){
     for(int i = 0; i < tableSize; i++){
-        strcpy(table[i].name, "");
-        table[i].keyId = -1;
+        cout << "Index " << i << ": " << "Name: " << table[i].name << ", ID: " << table[i].keyId << endl;
     }
 }
