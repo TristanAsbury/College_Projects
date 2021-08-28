@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include <fstream>
+#include <iomanip>
 
 using namespace std;
 
@@ -15,17 +16,16 @@ struct record {
 };
 
 int addRecord(record table[], int tableSize, int key, char name[41] , int method);
-void addFromFile(record table[], int tableSize, istream &inFile, int method);
+void addFromFile(record table[], int tableSize, string filePath, int method);
 int searchRecord(record table[], int tableSize, int key,  int method);
 int deleteRecord(record table[], int tableSize, int key, int method);
 void readTable(record table[], int tableSize);
-void clearTable(record table[], int tableSize);
 
 int main(){
     const int TABLE_SIZE = 19; //SETS INITIAL TABLE SIZE
     record table[TABLE_SIZE]; //CREATES ARRAY OF STRUCTS
     string filePath;
-    ifstream inFile;
+    
     int input = 0;
     int enteredId;
     char enteredName[41];
@@ -41,17 +41,17 @@ int main(){
     if(input == 1){
         cout << "Enter path to record file: \n";
         cin >> filePath;
-        inFile.open(filePath);
-        
+        ifstream inFile(filePath);
         while(inFile.fail()){
-            cout << "Invalid path to record file, re-enter:\n";
+            cout << "Invalid path to record file, re-enter:\n" << endl;
             cin >> filePath;
             inFile.open(filePath);
         }
-        addFromFile(table, TABLE_SIZE, inFile, method);
+        input = 0;
+        addFromFile(table, TABLE_SIZE, filePath, method);
     }
-
     
+    //FINALLY: START MAIN LOOP
     while(input != -1){
         cout << "///////////////////\n";
         cout << "Select Option:\n";
@@ -59,7 +59,8 @@ int main(){
         cin >> input;
         if(input == 1){ //INSERT RECORD AND RETURN SUCCESS
             cout << "Enter name: " << endl;
-            cin >> enteredName;
+            cin.ignore(); //Remove white spaces caused by cin
+            cin.getline(enteredName, 40);
             cout << "Enter ID: " << endl;
             cin >> enteredId;
             while(enteredId < 000 || enteredId > 999){
@@ -95,79 +96,93 @@ int main(){
     return 0;
 }
 
-//ADD RECORD
-//INPUT: 
-//name: THe name of the record
-//tableSize
-int addRecord(record table[], int tableSize, int key, char name[41] , int method){
+/*ADD RECORD
+--Function:
+This function will take the key and name of the record, use the chosen hash method to find the index, and depending
+on the conditions, either keep searching, or stop trying.
+--Input:
+table: The table in which will have the same size as tableSize, and has all the records
+tableSize: Size of table for the for loops
+key: Key for searching
+name: name of the person being added to the hash table
+method: The collision resolution method used throughout the program
+--Output:
+(integer) success: IF the key is added successfully, the function will return 1, else -1
+*/
+int addRecord(record table[], int tableSize, int key, char name[41], int method){
     int index = key % tableSize; //Mod 19
     bool posFound = false;
 
     cout << "Attempting to insert key at index: " << index << endl;
-    if(table[index].keyId == -1){
+    if(table[index].keyId == -1){ //Check each space, see if its open
         table[index].keyId = key;
-        strcpy(table[index].name, name); //Set name of CURRENT POS to REQUESTED RECORD 
+        strcpy(table[index].name, name); //Set name of the index to the inserted record
         return 1;
     } else if(method == 1) { //LINEAR PROBING
-        int postCount = 0;
+        int postCount = 1;
+        //While we havent reached the original spot and we haven't found a space
         while(postCount < tableSize && posFound == false){
-            postCount++;
-            index = (key+postCount)%tableSize;
-            cout << "Attempting to insert key at index: " << index << endl;
-            if(table[index].keyId == -1){
-                posFound = true;
-                table[index].keyId = key;
-                strcpy(table[index].name, name);
+            index = (key%tableSize) + postCount; //Basically just goes through one after another
+            cout << "Attempting to insert key at index: " << index << endl; //Alerts user that an insertion is being attempted
+            if(table[index].keyId == -1){ //Check each space, see if its open
+                posFound = true; //Bool that stops the loop
+                table[index].keyId = key; //Set key of index to the inserted record
+                strcpy(table[index].name, name); //Set name of the index to the inserted record
             }
+            postCount++; //Increment position
         }
-        //Return the result depending if the spot was found
     } else if(method == 2){ //QUADRATIC PROBING
         int postCount = 1;
+        //While we haven't tried all available spots and haven't found a space
         while(posFound == false && postCount < (tableSize+1)/2){
-            int newIndex = (index+postCount*postCount)%tableSize;
-            cout << "Attempting to insert key at index: " << newIndex << endl;
-            if(table[newIndex].keyId == -1){
-                posFound = true;
-                table[newIndex].keyId = key;
-                strcpy(table[newIndex].name, name);
+            int newIndex = (index+postCount*postCount)%tableSize; //Do quadratic probing calculation
+            cout << "Attempting to insert key at index: " << newIndex << endl; //Alerts user that an insertion is being attempted
+            if(table[newIndex].keyId == -1){ //Check each space, see if its open
+                posFound = true; //Bool that stops the loop
+                table[newIndex].keyId = key; //Set key of index to the inserted record
+                strcpy(table[newIndex].name, name); //Set name of the index to the inserted record
             }
-            postCount++;
+            postCount++; //Increment position
         }
     } else if(method == 3){ //DOUBLE HASHING
         int postCount = 1;
-        int fixedInt = key/tableSize; 
+        int fixedInc = key/tableSize; //Set fixed increment
+        //While we haven't tried all available spots and haven't found a space
         while(posFound == false && postCount < tableSize){
-            index = (index + fixedInt) % tableSize;
+            index = (index + fixedInc) % tableSize; //Set index to previous index checked + the fixed increment all mod by the tableSize
             cout << "Attempting to insert key at index: " << index << endl;
-            if(table[index].keyId == -1){
-                posFound = true;
-                table[index].keyId = key;
-                strcpy(table[index].name, name);
+            if(table[index].keyId == -1){ //Check each space, see if its open
+                posFound = true; //Bool that stops the loop
+                table[index].keyId = key; //Set key of index to the inserted record
+                strcpy(table[index].name, name); //Set name of the index to the inserted record
             }
-            postCount++;
+            postCount++; //Increment position
         }
     }
     return posFound;
 }
 
-//SEARCH TABLE
-//INPUT:
-//tableSize: Size of table for the for loops
-//key: Key for searching
-//table: The table in which will have the same size as tableSize, and has all the records
-//method: The collision resolution method used throughout the program
-//OUTPUT:
-//(integer) index: IF the key is found at an index, it will return the index, otherwise it will return -1
+/*SEARCH RECORD
+--Function:
+This function will take in the key of a record and search for it, hashing it the same way that it was added
+and depending on the conditions, return a value. 
+--Input:
+table: The table in which will have the same size as tableSize, and has all the records
+tableSize: Size of table for the for loops
+key: Key for searching
+method: The collision resolution method used throughout the program
+--Output:
+(integer) success: IF the key is found successfully, the function will return 1, else -1
+*/
 int searchRecord(record table[], int tableSize, int key,  int method){
-    int index = key % tableSize; //Mod 19
+    int index = key % tableSize; 
     bool posFound = false;
     cout << "Trying to probe for key at index: " << index << endl;
     if(table[index].keyId == key){
         return index;
     } else if(method == 1) { //LINEAR PROBING
-        int postCount = 0;
+        int postCount = 1;
         while(postCount < tableSize && posFound == false){
-            postCount++;
             index = (key+postCount)%tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
             //With probing, if the next searched position is empty, this means that an insertion never reached this spot
@@ -176,12 +191,12 @@ int searchRecord(record table[], int tableSize, int key,  int method){
             } else if(table[index].keyId == key){
                 return index;
             }
+            postCount++;
         }
         //Return the result depending if the spot was found
     } else if(method == 2){ //QUADRATIC PROBING
-        int postCount = 0;
+        int postCount = 1;
         while(posFound == false && postCount != (tableSize+1)/2){
-            postCount++;
             int newIndex = (index+postCount*postCount)%tableSize;
             cout << "Trying to probe for key at index: " << newIndex << endl;
             //With probing, if the next searched position is empty, this means that an insertion never reached this spot
@@ -190,13 +205,12 @@ int searchRecord(record table[], int tableSize, int key,  int method){
             } else if(table[newIndex].keyId == key){
                 return newIndex;
             }
-            
+            postCount++;
         }
-    } else if(method == 3){ //DOUBLE HASHING
-        int postCount = 0;
+    } else if(method == 3){ //DOUBLE HASHING SEARCH
+        int postCount = 1;
         int fixedInt = key/tableSize; 
         while(posFound == false && postCount != tableSize){
-            postCount++;
             index = (index + fixedInt) % tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
             if(table[index].keyId == -1){
@@ -204,19 +218,25 @@ int searchRecord(record table[], int tableSize, int key,  int method){
             } else if(table[index].keyId == key){
                 return index;
             }
+            postCount++;
         }
     }
     return -1;
 }
 
-//DELETE RECORD
-//INPUT:
-//table: The table in which will have the same size as tableSize, and has all the records
-//tableSize: Size of table for the for loops
-//key: Key for searching
-//method: The collision resolution method used throughout the program
-//OUTPUT:
-//(integer) success: IF the key is found and deleted successfully, the function will return 1, else -1
+/*
+DELETE RECORD
+--Function:
+This function will use the already created searchRecord function and if it returns a value (non -1), then it will use this
+index and set the keyId to -1 as to flag it as empty
+--Input:
+table: The table in which will have the same size as tableSize, and has all the records
+tableSize: Size of table for the for loops
+key: Key for searching
+method: The collision resolution method used throughout the program
+--Output:
+(integer) success: IF the key is found and deleted successfully, the function will return 1, else -1
+*/
 int deleteRecord(record table[], int tableSize, int key, int method){
     //Use search method, and if it finds the index, then set keyId to -1 at that index
     int index = searchRecord(table, tableSize, key, method);
@@ -229,23 +249,44 @@ int deleteRecord(record table[], int tableSize, int key, int method){
     return -1;
 }
 
-void addFromFile(record table[], int tableSize, ifstream &inFile, int method){
-    while(inFile.good()){
+/*ADD FROM FILE
+---Function:
+This method will take the string "filePath" and create an ifstream object, to which it will take all the data
+and insert it into the hash table using previous methods
+---Input
+table: The table in which will have the same size as tableSize, and has all the records
+tableSize: Size of table for the for loops
+filePath: a string to find the file that will be added
+method: The collision resolution method used throughout the program
+---Ouput:
+void
+*/
+void addFromFile(record table[], int tableSize, string filePath,  int method){
+    ifstream recordFile;
+    recordFile.open(filePath);
+    while(!recordFile.fail()){
         char name[41];
         int key;
-        inFile >> name;
-        inFile >> key;
+        recordFile.get(name, 41);
+        recordFile >> key >> ws;
         addRecord(table, tableSize, key, name, method);
     }
+    recordFile.close();
 }
 
-//READ TABLE
-//INPUT:
-//table: The table in which will have the same size as tableSize, and has all the records
-//tableSize: SIze of table for the for loops
-//OUTPUT: None, will print the records in the table
+/*READ TABLE
+---Function
+This function will simply print the hash table, including Index, Name, and KeyID
+---INPUT
+table: The table in which will have the same size as tableSize, and has all the records
+tableSize: Size of table for the for loops
+---Output:
+void
+*/
 void readTable(record table[], int tableSize){
+    cout << "///////////////////\n";
+    cout << left << setw(10) << "INDEX" << right << setw(5) << "NAME:" << right << setw(40) << "ID:" << endl;
     for(int i = 0; i < tableSize; i++){
-        cout << "Index " << i << ": " << "Name: " << table[i].name << ", ID: " << table[i].keyId << endl;
+        cout << left << setw(10) << i << setw(41) << table[i].name <<right<< setw(4) << table[i].keyId << endl;
     }
 }
