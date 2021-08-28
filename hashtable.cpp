@@ -287,6 +287,11 @@ void readTable(record table[], int tableSize){
     cout << "///////////////////\n";
     cout << left << setw(10) << "INDEX" << right << setw(5) << "NAME:" << right << setw(40) << "ID:" << endl;
     for(int i = 0; i < tableSize; i++){
-        cout << left << setw(10) << i << setw(41) << table[i].name <<right<< setw(4) << table[i].keyId << endl;
+        cout << left << setw(10) << i;
+        if(!(table[i].keyId == -1)){
+            cout << setw(41) << table[i].name <<right<< setw(4) << table[i].keyId << endl;
+        } else {
+            cout << setw(41) << "" << right << setw(4) << endl;
+        }
     }
 }
