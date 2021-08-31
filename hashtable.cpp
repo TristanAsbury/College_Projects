@@ -22,7 +22,7 @@ int deleteRecord(record table[], int tableSize, int key, int method);
 void readTable(record table[], int tableSize);
 
 int main(){
-    const int TABLE_SIZE = 11; //SETS INITIAL TABLE SIZE
+    const int TABLE_SIZE = 19; //SETS INITIAL TABLE SIZE
     record table[TABLE_SIZE]; //CREATES ARRAY OF STRUCTS
     char filePath[100];
     int option = 0;
@@ -59,9 +59,8 @@ int main(){
         cout << "1: Insert | 2: Search | 3: Delete | 4: List | -1: Exit\n";
         cin >> option;
         if(option == 1){ //INSERT RECORD AND RETURN SUCCESS
-            cout << "Enter name: " << endl;
-            cin.ignore(); //Remove white spaces caused by cin
-            cin.getline(enteredName, 40);
+            cout << "Enter name up to 40 characters: " << endl;
+            cin >> enteredName;
             cout << "Enter ID: " << endl;
             cin >> enteredId;
             while(enteredId < 000 || enteredId > 999){
@@ -115,9 +114,10 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
     bool posFound = false;
 
     cout << "Attempting to insert key at index: " << index << endl;
-    if(table[index].keyId == -1){ //Check each space, see if its open
+    //If the first spot is open:
+    if(table[index].keyId == -1){ 
         table[index].keyId = key;
-        strcpy(table[index].name, name); //Set name of the index to the inserted record
+        strcpy(table[index].name, name);
         return 1;
     } else if(method == 1) { //LINEAR PROBING
         int postCount = 1;
@@ -144,7 +144,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
                 table[index].keyId = key; //Set key of index to the inserted record
                 strcpy(table[index].name, name); //Set name of the index to the inserted record
             }
-            increment+=2; //Increment position
+            increment+=2; //Increment the increment
             timesChecked++;
         }
     } else if(method == 3){ //DOUBLE HASHING
@@ -188,7 +188,6 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         while(postCount < tableSize && posFound == false){
             index = (key+postCount)%tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
-            //With probing, if the next searched position is empty, this means that an insertion never reached this spot
             if(table[index].keyId == key){
                 return index;
             }
@@ -201,7 +200,6 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         while(posFound == false && timesChecked < (tableSize+1)/2){
             index = (index+increment)%tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
-            //With probing, if the next searched position is empty, this means that an insertion never reached this spot
             if(table[index].keyId == key){
                 return index;
             }
