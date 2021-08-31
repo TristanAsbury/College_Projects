@@ -22,23 +22,24 @@ int deleteRecord(record table[], int tableSize, int key, int method);
 void readTable(record table[], int tableSize);
 
 int main(){
-    const int TABLE_SIZE = 19; //SETS INITIAL TABLE SIZE
+    const int TABLE_SIZE = 11; //SETS INITIAL TABLE SIZE
     record table[TABLE_SIZE]; //CREATES ARRAY OF STRUCTS
-    string filePath;
-    
-    int input = 0;
+    char filePath[100];
+    int option = 0;
     int enteredId;
     char enteredName[41];
-    int method;
+    int method = 0;
     //FIRST THING: ASK THE USER FOR A COLLISION RESOLUTION METHOD
-    cout << "Enter Collision Resolution Method | 1: Linear Probing | 2: Quadratic Probing | 3: Double Hashing" << endl;
-    cin >> method;
+    while(!(method > 0 && method < 4)){
+        cout << "Enter Collision Resolution Method | 1: Linear Probing | 2: Quadratic Probing | 3: Double Hashing" << endl;
+        cin >> method;
+    }
 
     //SECOND: ASK IF THEY ARE IMPORTING ANY RECORDS FROM A FILE
     cout << "Are you entering records from a file?\n";
     cout << "1: Yes | 0: No\n";
-    cin >> input;
-    if(input == 1){
+    cin >> option;
+    if(option == 1){
         cout << "Enter path to record file: \n";
         cin >> filePath;
         ifstream inFile(filePath);
@@ -47,17 +48,17 @@ int main(){
             cin >> filePath;
             inFile.open(filePath);
         }
-        input = 0;
+        option = 0;
         addFromFile(table, TABLE_SIZE, filePath, method);
     }
     
     //FINALLY: START MAIN LOOP
-    while(input != -1){
+    while(option != -1){
         cout << "///////////////////\n";
         cout << "Select Option:\n";
         cout << "1: Insert | 2: Search | 3: Delete | 4: List | -1: Exit\n";
-        cin >> input;
-        if(input == 1){ //INSERT RECORD AND RETURN SUCCESS
+        cin >> option;
+        if(option == 1){ //INSERT RECORD AND RETURN SUCCESS
             cout << "Enter name: " << endl;
             cin.ignore(); //Remove white spaces caused by cin
             cin.getline(enteredName, 40);
@@ -72,7 +73,7 @@ int main(){
             } else {
                 cout << "Error adding record.\n";
             }
-        } else if(input == 2){ //SEARCH RECORDS AND RETURN INDEX
+        } else if(option == 2){ //SEARCH RECORDS AND RETURN INDEX
             cout << "Enter key: " << endl;
             cin >> enteredId;
             int foundPos = searchRecord(table, TABLE_SIZE, enteredId, method);
@@ -81,7 +82,7 @@ int main(){
             } else {
                 cout << "Error finding record." << endl;
             }
-        } else if(input == 3){ //DELETE RECORD AND RETURN SUCCESS
+        } else if(option == 3){ //DELETE RECORD AND RETURN SUCCESS
             cout << "Deleting record. Enter key: " << endl;
             cin >> enteredId;
             if(deleteRecord(table, TABLE_SIZE, enteredId, method) != -1){
@@ -89,7 +90,7 @@ int main(){
             } else {
                 cout << "Error deleting record.\n";
             }
-        } else if(input == 4){ //LIST RECORDS
+        } else if(option == 4){ //LIST RECORDS
             readTable(table, TABLE_SIZE);
         }
     }
@@ -122,8 +123,8 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         int postCount = 1;
         //While we havent reached the original spot and we haven't found a space
         while(postCount < tableSize && posFound == false){
-            index = (key%tableSize) + postCount; //Basically just goes through one after another
-            cout << "Attempting to insert key at index: " << index << endl; //Alerts user that an insertion is being attempted
+            index = (key%tableSize) + postCount;
+            cout << "Attempting to insert key at index: " << index << endl;
             if(table[index].keyId == -1){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
@@ -132,17 +133,19 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
             postCount++; //Increment position
         }
     } else if(method == 2){ //QUADRATIC PROBING
-        int postCount = 1;
+        int increment = 1;
+        int timesChecked = 1;
         //While we haven't tried all available spots and haven't found a space
-        while(posFound == false && postCount < (tableSize+1)/2){
-            int newIndex = (index+postCount*postCount)%tableSize; //Do quadratic probing calculation
-            cout << "Attempting to insert key at index: " << newIndex << endl; //Alerts user that an insertion is being attempted
-            if(table[newIndex].keyId == -1){ //Check each space, see if its open
+        while(posFound == false && timesChecked < (tableSize+1)/2){
+            index = (index+increment)%tableSize; //Do quadratic probing calculation
+            cout << "Attempting to insert key at index: " << index << endl;
+            if(table[index].keyId == -1){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
-                table[newIndex].keyId = key; //Set key of index to the inserted record
-                strcpy(table[newIndex].name, name); //Set name of the index to the inserted record
+                table[index].keyId = key; //Set key of index to the inserted record
+                strcpy(table[index].name, name); //Set name of the index to the inserted record
             }
-            postCount++; //Increment position
+            increment+=2; //Increment position
+            timesChecked++;
         }
     } else if(method == 3){ //DOUBLE HASHING
         int postCount = 1;
@@ -186,36 +189,32 @@ int searchRecord(record table[], int tableSize, int key,  int method){
             index = (key+postCount)%tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
             //With probing, if the next searched position is empty, this means that an insertion never reached this spot
-            if(table[index].keyId == -1){
-                return -1;
-            } else if(table[index].keyId == key){
+            if(table[index].keyId == key){
                 return index;
             }
             postCount++;
         }
         //Return the result depending if the spot was found
     } else if(method == 2){ //QUADRATIC PROBING
-        int postCount = 1;
-        while(posFound == false && postCount != (tableSize+1)/2){
-            int newIndex = (index+postCount*postCount)%tableSize;
-            cout << "Trying to probe for key at index: " << newIndex << endl;
+        int increment = 1;
+        int timesChecked = 1;
+        while(posFound == false && timesChecked < (tableSize+1)/2){
+            index = (index+increment)%tableSize;
+            cout << "Trying to probe for key at index: " << index << endl;
             //With probing, if the next searched position is empty, this means that an insertion never reached this spot
-            if(table[newIndex].keyId == -1){
-                return -1;
-            } else if(table[newIndex].keyId == key){
-                return newIndex;
+            if(table[index].keyId == key){
+                return index;
             }
-            postCount++;
+            increment+=2;
+            timesChecked++;
         }
     } else if(method == 3){ //DOUBLE HASHING SEARCH
         int postCount = 1;
-        int fixedInt = key/tableSize; 
+        int fixedInc = key/tableSize; 
         while(posFound == false && postCount != tableSize){
-            index = (index + fixedInt) % tableSize;
+            index = (index + fixedInc) % tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
-            if(table[index].keyId == -1){
-                return -1;
-            } else if(table[index].keyId == key){
+            if(table[index].keyId == key){
                 return index;
             }
             postCount++;
