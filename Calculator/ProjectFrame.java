@@ -25,11 +25,8 @@ public class ProjectFrame extends JFrame implements ActionListener, DocumentList
     ProjectFrame(){
         //Set Up Panels
         inputPanel = new JPanel();
-        inputPanel.setBackground(Color.BLUE);
         optionPanel = new JPanel();
-        optionPanel.setBackground(Color.YELLOW);
         outputPanel = new JPanel();
-        outputPanel.setBackground(Color.GREEN);
         calcOptionGroup = new ButtonGroup();
 
         //Set Up Radio Buttons and Check Box
@@ -40,6 +37,9 @@ public class ProjectFrame extends JFrame implements ActionListener, DocumentList
         sqrtRadio = new JRadioButton("Square Root");
         sqrtRadio.addActionListener(this);
         sqrtRadio.setActionCommand("SELECTION");
+        //This will set the sqrt option to the default selected option
+        sqrtRadio.setSelected(true);
+
 
         sinRadio = new JRadioButton("Sin");
         sinRadio.addActionListener(this);
