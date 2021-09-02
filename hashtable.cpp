@@ -24,7 +24,7 @@ void readTable(record table[], int tableSize);
 int main(){
     const int TABLE_SIZE = 19; //SETS INITIAL TABLE SIZE
     record table[TABLE_SIZE]; //CREATES ARRAY OF STRUCTS
-    char filePath[100];
+    char filePath[255];
     int option = 0;
     int enteredId;
     char enteredName[41];
@@ -40,11 +40,11 @@ int main(){
     cout << "1: Yes | 0: No\n";
     cin >> option;
     if(option == 1){
-        cout << "Enter path to record file: \n";
+        cout << "Enter path to record file:\n";
         cin >> filePath;
         ifstream inFile(filePath);
         while(inFile.fail()){
-            cout << "Invalid path to record file, re-enter:\n" << endl;
+            cout << "Invalid path to record file, re-enter:\n";
             cin >> filePath;
             inFile.open(filePath);
         }
@@ -59,12 +59,14 @@ int main(){
         cout << "1: Insert | 2: Search | 3: Delete | 4: List | -1: Exit\n";
         cin >> option;
         if(option == 1){ //INSERT RECORD AND RETURN SUCCESS
-            cout << "Enter name up to 40 characters: " << endl;
-            cin >> enteredName;
+            cout << "Enter name up to 40 characters:\n";
+            cin.sync();
+            cin.getline(enteredName, 41);
+            cin.sync();
             cout << "Enter ID: " << endl;
             cin >> enteredId;
             while(enteredId < 000 || enteredId > 999){
-                cout << "Invalid ID Number. Re-enter: " << endl;
+                cout << "Invalid ID Number. Re-enter:\n";
                 cin >> enteredId;
             }
             if(addRecord(table, TABLE_SIZE, enteredId, enteredName, method) == 1){
@@ -79,10 +81,10 @@ int main(){
             if(foundPos != -1){
                 cout << "Found key: " << enteredId << " at index: " << foundPos << endl;
             } else {
-                cout << "Error finding record." << endl;
+                cout << "Error finding record.\n";
             }
         } else if(option == 3){ //DELETE RECORD AND RETURN SUCCESS
-            cout << "Deleting record. Enter key: " << endl;
+            cout << "Deleting record. Enter key:\n";
             cin >> enteredId;
             if(deleteRecord(table, TABLE_SIZE, enteredId, method) != -1){
                 cout << "Successfully deleted record!\n";
@@ -113,7 +115,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
     int index = key % tableSize; //Mod 19
     bool posFound = false;
 
-    cout << "Attempting to insert key at index: " << index << endl;
+    cout << "Attempting to insert key " << key << " at index: " << index << endl;
     //If the first spot is open:
     if(table[index].keyId < 0){ 
         table[index].keyId = key;
@@ -124,7 +126,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         //While we havent reached the original spot and we haven't found a space
         while(postCount < tableSize && posFound == false){
             index = (key%tableSize) + postCount;
-            cout << "Attempting to insert key at index: " << index << endl;
+            cout << "Probing index: " << index << endl;
             if(table[index].keyId < 0){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
@@ -138,7 +140,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         //While we haven't tried all available spots and haven't found a space
         while(posFound == false && timesChecked < (tableSize+1)/2){
             index = (index+increment)%tableSize; //Do quadratic probing calculation
-            cout << "Attempting to insert key at index: " << index << endl;
+            cout << "Probing index: " << index << endl;
             if(table[index].keyId < 0){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
@@ -153,7 +155,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         //While we haven't tried all available spots and haven't found a space
         while(posFound == false && postCount < tableSize){
             index = (index + fixedInc) % tableSize; //Set index to previous index checked + the fixed increment all mod by the tableSize
-            cout << "Attempting to insert key at index: " << index << endl;
+            cout << "Probing index: " << index << endl;
             if(table[index].keyId < 0 ){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
@@ -180,14 +182,14 @@ method: The collision resolution method used throughout the program
 int searchRecord(record table[], int tableSize, int key,  int method){
     int index = key % tableSize; 
     bool posFound = false;
-    cout << "Trying to probe for key at index: " << index << endl;
+    cout << "Trying to search for key " << key << " at index: " << index << endl;
     if(table[index].keyId == key){
         return index;
     } else if(method == 1) { //LINEAR PROBING
         int postCount = 1;
         while(postCount < tableSize && posFound == false){
             index = (key+postCount)%tableSize;
-            cout << "Trying to probe for key at index: " << index << endl;
+            cout << "Probing index: " << index << endl;
             if(table[index].keyId == -2){
                 return -1;
             } else if(table[index].keyId == key){
@@ -201,7 +203,7 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         int timesChecked = 1;
         while(posFound == false && timesChecked < (tableSize+1)/2){
             index = (index+increment)%tableSize;
-            cout << "Trying to probe for key at index: " << index << endl;
+            cout << "Probing index: " << index << endl;
             if(table[index].keyId == -2){
                 return -1;
             } else if(table[index].keyId == key){
@@ -215,7 +217,7 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         int fixedInc = key/tableSize; 
         while(posFound == false && postCount != tableSize){
             index = (index + fixedInc) % tableSize;
-            cout << "Trying to probe for key at index: " << index << endl;
+            cout << "Probing index: " << index << endl;
             if(table[index].keyId == -2){
                 return -1;
             } else if(table[index].keyId == key){
@@ -267,7 +269,7 @@ void
 void addFromFile(record table[], int tableSize, string filePath,  int method){
     ifstream recordFile;
     recordFile.open(filePath);
-    while(!recordFile.fail()){
+    while(!recordFile.eof()){
         char name[41];
         int key;
         recordFile.get(name, 41);
