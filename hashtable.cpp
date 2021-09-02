@@ -11,7 +11,7 @@ struct record {
 
     record(){
         strcpy(name, "");
-        keyId = -1;
+        keyId = -2;
     }
 };
 
@@ -115,7 +115,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
 
     cout << "Attempting to insert key at index: " << index << endl;
     //If the first spot is open:
-    if(table[index].keyId == -1){ 
+    if(table[index].keyId < 0){ 
         table[index].keyId = key;
         strcpy(table[index].name, name);
         return 1;
@@ -125,7 +125,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         while(postCount < tableSize && posFound == false){
             index = (key%tableSize) + postCount;
             cout << "Attempting to insert key at index: " << index << endl;
-            if(table[index].keyId == -1){ //Check each space, see if its open
+            if(table[index].keyId < 0){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
                 strcpy(table[index].name, name); //Set name of the index to the inserted record
@@ -139,7 +139,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         while(posFound == false && timesChecked < (tableSize+1)/2){
             index = (index+increment)%tableSize; //Do quadratic probing calculation
             cout << "Attempting to insert key at index: " << index << endl;
-            if(table[index].keyId == -1){ //Check each space, see if its open
+            if(table[index].keyId < 0){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
                 strcpy(table[index].name, name); //Set name of the index to the inserted record
@@ -154,7 +154,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int method)
         while(posFound == false && postCount < tableSize){
             index = (index + fixedInc) % tableSize; //Set index to previous index checked + the fixed increment all mod by the tableSize
             cout << "Attempting to insert key at index: " << index << endl;
-            if(table[index].keyId == -1){ //Check each space, see if its open
+            if(table[index].keyId < 0 ){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
                 table[index].keyId = key; //Set key of index to the inserted record
                 strcpy(table[index].name, name); //Set name of the index to the inserted record
@@ -188,7 +188,9 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         while(postCount < tableSize && posFound == false){
             index = (key+postCount)%tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
-            if(table[index].keyId == key){
+            if(table[index].keyId == -2){
+                return -1;
+            } else if(table[index].keyId == key){
                 return index;
             }
             postCount++;
@@ -200,7 +202,9 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         while(posFound == false && timesChecked < (tableSize+1)/2){
             index = (index+increment)%tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
-            if(table[index].keyId == key){
+            if(table[index].keyId == -2){
+                return -1;
+            } else if(table[index].keyId == key){
                 return index;
             }
             increment+=2;
@@ -212,7 +216,9 @@ int searchRecord(record table[], int tableSize, int key,  int method){
         while(posFound == false && postCount != tableSize){
             index = (index + fixedInc) % tableSize;
             cout << "Trying to probe for key at index: " << index << endl;
-            if(table[index].keyId == key){
+            if(table[index].keyId == -2){
+                return -1;
+            } else if(table[index].keyId == key){
                 return index;
             }
             postCount++;
@@ -285,7 +291,7 @@ void readTable(record table[], int tableSize){
     cout << left << setw(10) << "INDEX" << right << setw(5) << "NAME:" << right << setw(40) << "ID:" << endl;
     for(int i = 0; i < tableSize; i++){
         cout << left << setw(10) << i;
-        if(!(table[i].keyId == -1)){
+        if(!(table[i].keyId < 0)){
             cout << setw(41) << table[i].name <<right<< setw(4) << table[i].keyId << endl;
         } else {
             cout << setw(41) << "" << right << setw(4) << endl;
