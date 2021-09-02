@@ -22,7 +22,7 @@ int deleteRecord(record table[], int tableSize, int key, int method);
 void readTable(record table[], int tableSize);
 
 int main(){
-    const int TABLE_SIZE = 19; //SETS INITIAL TABLE SIZE
+    const int TABLE_SIZE = 19; //SETS TABLE SIZE
     record table[TABLE_SIZE]; //CREATES ARRAY OF STRUCTS
     char filePath[255];
     int menuOption = 0;
@@ -126,7 +126,7 @@ int addRecord(record table[], int tableSize, int key, char name[41], int resolut
         int postCount = 1;
         //While we havent reached the original spot and we haven't found a space
         while(postCount < tableSize && posFound == false){
-            index = (key%tableSize) + postCount;
+            index = ((key+postCount)%tableSize);
             cout << "Attempting to insert key " << key << " at index: " << index << endl;
             if(table[index].keyId < 0){ //Check each space, see if its open
                 posFound = true; //Bool that stops the loop
