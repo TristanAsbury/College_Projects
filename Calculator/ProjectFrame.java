@@ -6,8 +6,8 @@ import javax.swing.event.DocumentEvent;
 
 public class ProjectFrame extends JFrame implements ActionListener, DocumentListener {
     JPanel inputPanel; //TOP
-    JPanel optionPanel; //TOP
-    JPanel outputPanel; //CENTER
+    JPanel optionPanel; //CENTER
+    JPanel outputPanel; //SOUTH
 
     ButtonGroup calcOptionGroup;
     
