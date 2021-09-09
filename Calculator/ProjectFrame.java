@@ -1,4 +1,3 @@
-package SophomoreYear.CalculatorProject;
 import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
@@ -6,9 +5,10 @@ import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
 
 public class ProjectFrame extends JFrame implements ActionListener, DocumentListener {
-    JPanel inputPanel;
-    JPanel optionPanel;
-    JPanel outputPanel;
+    JPanel inputPanel; //TOP
+    JPanel optionPanel; //TOP
+    JPanel outputPanel; //CENTER
+
     ButtonGroup calcOptionGroup;
     
     //Input Panel Area
@@ -20,7 +20,6 @@ public class ProjectFrame extends JFrame implements ActionListener, DocumentList
     JCheckBox inverseCheckBox;
     //Ouput
     JTextField outputText;
-
     
     ProjectFrame(){
         //Set Up Panels
@@ -39,7 +38,6 @@ public class ProjectFrame extends JFrame implements ActionListener, DocumentList
         sqrtRadio.setActionCommand("SELECTION");
         //This will set the sqrt option to the default selected option
         sqrtRadio.setSelected(true);
-
 
         sinRadio = new JRadioButton("Sin");
         sinRadio.addActionListener(this);
@@ -82,8 +80,8 @@ public class ProjectFrame extends JFrame implements ActionListener, DocumentList
         //Output Panel
         outputPanel.add(outputText);
         //Add panels
-        add(inputPanel, BorderLayout.CENTER);
-        add(optionPanel, BorderLayout.EAST);
+        add(inputPanel, BorderLayout.NORTH);
+        add(optionPanel, BorderLayout.CENTER);
         add(outputPanel, BorderLayout.SOUTH);
         calcOptionGroup = new ButtonGroup();
         
@@ -123,7 +121,8 @@ public class ProjectFrame extends JFrame implements ActionListener, DocumentList
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
         setSize((int)(d.getWidth()/3),(int)d.getHeight()/3);
-        setVisible(true);
+        setVisible(true); 
+        setTitle("Calculator Project");
     }
 
     public void actionPerformed(ActionEvent e){
