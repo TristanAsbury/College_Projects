@@ -2,41 +2,10 @@
 #include <cstring>
 using namespace std;
 
-class OperatorNode {
-    OperatorNode* next;
-    char op;
-    
-    public:
-    OperatorNode(){
-        next = nullptr;
-    }
-
-    OperatorNode(char inOp){
-        op = inOp;
-        next = nullptr;
-    }
-
-    ~OperatorNode(){
-    }
-
-    OperatorNode* getNext(){
-        return next;
-    }
-
-    void setNext(OperatorNode* opNode){
-        next = opNode;
-    }
-
-    char getOperator(){
-        return op;
-    }
-};
-
-class OperandNode {
+struct OperandNode {
     OperandNode* next;
     double op;
-
-    public:
+    
     OperandNode(){
         next = nullptr;
     }
@@ -46,114 +15,38 @@ class OperandNode {
         next = nullptr;
     }
 
-    ~OperandNode(){
-    }
-
-    OperandNode* getNext(){
-        return next;
-    }
-
-    void setNext(OperandNode* opNode){
-        next = opNode;
-    }
-
     double getOperand(){
         return op;
     }
 };
 
-class OperatorStack {
-    //Head is a dummy node which contains no data and always exists in the stack
-    OperatorNode* head;
-    //Top is the node right after the head node
-    OperatorNode* top;
-    int size;
-
-    public:
-    OperatorStack(){
-        head = new OperatorNode();
-        top = head->getNext();
-        size = 0;
-    }
-
-    ~OperatorStack(){ 
-    }
-
-    OperatorNode* getHead(){
-        return head;
-    }
-
-    OperatorNode* getTop(){
-        return top;
-    }
-
-    bool empty(){
-        return top==nullptr;
-    }
-
-    void push(char inputOp){
-        if(empty()){
-            //If there is no current top, then make one
-            head->setNext(new OperatorNode(inputOp));
-        } else {
-            //Else, get the top node
-            // OperatorNode* nextNode = head->getNext();
-            head->setNext(new OperatorNode(inputOp));
-            head->getNext()->setNext(top);
-        }
-        top = head->getNext();
-        size++;
-    }
-
-    char pop(){
-        if(!empty()){ 
-            char returnChar = top->getOperator();
-            head->setNext(top->getNext());
-            delete(top);
-            top = head->getNext();
-            size--;
-            return returnChar;
-        }
-        return '\0';
-    }
-};
-
-class OperandStack {
+struct OperandStack {
     OperandNode* head;
     OperandNode* top;
     int size;
 
-    public:
     OperandStack(){
+        //Set head to new node
         head = new OperandNode();
-        top = head->getNext();
+        top = head->next;
         size = 0;
-    }
-
-    ~OperandStack(){
-    }
-
-    OperandNode* getHead(){
-        return head;
-    }
-
-    OperandNode* getTop(){
-        return top;
-    }
+    }    
 
     bool empty(){
+        //If top is nullptr, then the stack is empty
         return top == nullptr;
     }
 
     void push(double inputOp){
-        if(empty()){
-            head->setNext(new OperandNode(inputOp));
-        } else {
-            OperandNode* nextNode = head->getNext();
-            head->setNext(new OperandNode(inputOp));
-            head->getNext()->setNext(nextNode);
-        }
-        top = head->getNext();
+        //Create pointer to new node
+        OperandNode* addedNode = new OperandNode(inputOp);
+        //Set the new node's next to the heads next
+        addedNode->next = head->next;
+        //Set head's next pointer to the new node
+        head->next = addedNode;
+        //Set top pointer to the new node
+        top = head->next;
+        //Increase size
         size++;
     }
 
@@ -163,47 +56,52 @@ class OperandStack {
             return -1;
         } else {
             double returnNum = top->getOperand();
-            head->setNext(top->getNext());
+            head->next = top->next;
             delete(top);
-            top = head->getNext();
+            top = head->next;
             size--;
             return returnNum;
         }
     }
-
-    int getSize(){
-        return size;
-    }
 };
 
 class Expression {
-    OperatorStack operatorStack;
     OperandStack operandStack;
-    bool expressionIsGood = true;
+    bool expressionIsGood;
 
     public:
     Expression(){
-        operatorStack = OperatorStack();
         operandStack = OperandStack();
+        expressionIsGood = true;
     }
 
     //Add term to expression
-    void addTerm(char* token){
-        if(expressionIsGood){
-            if(atoi(token)){
-                //If it is an operand, we just add it to the operand stack
-                operandStack.push(atoi(token));
-                showOperandStack();
-            } else {
-                //If it is an operator, add the operator to the operator stack AND call doCalculation
-                operatorStack.push(token[0]);
-                doCalculation();
-                showOperandStack();
+    void enterExpression(char* enteredExpression){
+        char* token = strtok(enteredExpression, " \n");
+        while (token != NULL && expressionIsGood)
+        {
+            //If an error occurs while parsing, don't partse
+            if(expressionIsGood){
+                if(atof(token)){
+                    //If it is an operand, we just add it to the operand stack
+                    operandStack.push(atof(token));
+                    showOperandStack();
+                } else {
+                    //if the character is an operator, take it to the calculation
+                    doCalculation(token[0]);
+                    showOperandStack();
+                }
             }
+            token = strtok(NULL, " \n");
+        }
+        if(expressionIsGood && operandStack.size == 1){
+            cout << "The result of your expression was: " << operandStack.pop() << "\n";
+        } else {
+            cout << "Expression not good. Something went wrong.\n";
         }
     }
 
-    void doCalculation(){
+    void doCalculation(char operatorChar){
         //Pop the 2 top operands. The first operand popped is the second operand in the math expression and the second popped is the first
         double operand1;
         double operand2;
@@ -222,19 +120,14 @@ class Expression {
             expressionIsGood = false;
         }
 
-        //Pop the top operator
-        char expOperator;
-        if(!operatorStack.empty()){
-            expOperator = operatorStack.pop();
-        }
-        
         //PushedNum is the operand that will pushed back into the operand stack after the math expression
         double pushedNum = 0;
 
         //If the expression is good, do calculations
         if(expressionIsGood){
+            
             //Find what operand is being used and base the math expression off of that
-            switch(expOperator){
+            switch(operatorChar){
                 case('*'):
                 pushedNum = operand1 * operand2;
                 break;
@@ -256,51 +149,33 @@ class Expression {
 
     void showOperandStack(){
         cout << "Operand Stack (TOP ON LEFT):\n";
-        //Set the current node in the loop to top node
-        OperandNode* currentOperand = operandStack.getTop();
+        //Set the current node in the loop to the top node of the stack
+        OperandNode* currentOperand = operandStack.top;
 
         //While the node pointer is pointing to a valid node
         while(currentOperand != nullptr){
             //Print the operand
-            cout << currentOperand->getOperand();
-            cout << " ";
+            cout << currentOperand->getOperand() << " ";
+
             //Set the current operand pointer to the next operand node
-            currentOperand = currentOperand->getNext();
+            currentOperand = currentOperand->next;
         }
         cout << endl;
     }
-
-    void getResult(){
-        if(expressionIsGood && operandStack.getSize() == 1){
-            cout << "The result of your expression was: " << operandStack.pop();
-        } else {
-            cout << "Expression not good. Something went wrong.";
-        }
-    }
-    
 };
 
 int main(){
     int totalChars = 0;
     int stackChars = 0;
 
-    //This should be enough for a singular term, hopefully no one enters a 256 digit number
+    //This should be enough for a singular expression, hopefully no one enters a 256 digit expression
     char expression[256] = "";
 
-    //This is an expression, it contains both an operator and operand stack
+    //This is an expression, it contains an operand stack
     Expression myExpression = Expression();
-    
     cout << "Enter expression: " << endl;
     cin.getline(expression, 255);
-    //Use strtok to split up expression into terms, where a space and a newline are the separators
-    char *token = strtok(expression, " \n");
-    while (token != NULL)
-    {
-        //Add term to the expression
-        myExpression.addTerm(token);
-        token = strtok(NULL, " \n");
-    }
-
-    myExpression.getResult();
+    myExpression.enterExpression(expression);
+    
     return 0;
 }
