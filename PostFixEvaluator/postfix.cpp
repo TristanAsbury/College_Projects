@@ -125,7 +125,6 @@ class Expression {
 
         //If the expression is good, do calculations
         if(expressionIsGood){
-            
             //Find what operand is being used and base the math expression off of that
             switch(operatorChar){
                 case('*'):
