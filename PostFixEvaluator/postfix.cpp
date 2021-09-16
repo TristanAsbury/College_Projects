@@ -1,11 +1,18 @@
+//Author: Tristan Asbury
+//Finished: 9/12/21
 #include <iostream>
 #include <cstring>
 using namespace std;
 
+//OperandNode
+//Members:
+//  OperandNode pointer next
+//  double op which contains the number
 struct OperandNode {
     OperandNode* next;
     double op;
     
+    //For head nodes
     OperandNode(){
         next = nullptr;
     }
@@ -20,34 +27,32 @@ struct OperandNode {
     }
 };
 
+//OperandStack
+//Members:
+//  OperandNode pointer head, which points to the dummy node
+//  OperandNode pointer top, which points to the top node, or the node that is pointed to by the head's next pointer
+//  Int size, which keeps track of the size
 struct OperandStack {
     OperandNode* head;
     OperandNode* top;
     int size;
 
     OperandStack(){
-        //Set head to new node
-        head = new OperandNode();
+        head = new OperandNode(); //Set head to new node
         top = head->next;
         size = 0;
     }    
 
     bool empty(){
-        //If top is nullptr, then the stack is empty
-        return top == nullptr;
+        return top == nullptr; //If top is nullptr, then the stack is empty
     }
 
     void push(double inputOp){
-        //Create pointer to new node
-        OperandNode* addedNode = new OperandNode(inputOp);
-        //Set the new node's next to the heads next
-        addedNode->next = head->next;
-        //Set head's next pointer to the new node
-        head->next = addedNode;
-        //Set top pointer to the new node
-        top = head->next;
-        //Increase size
-        size++;
+        OperandNode* addedNode = new OperandNode(inputOp); //Create pointer to new node
+        addedNode->next = head->next; //Set the new node's next to the heads next
+        head->next = addedNode; //Set head's next pointer to the new node
+        top = head->next; //Set top pointer to the new node
+        size++; //Increase size
     }
 
     double pop(){
@@ -77,27 +82,24 @@ class Expression {
 
     //Add term to expression
     void enterExpression(char* enteredExpression){
-        char* token = strtok(enteredExpression, " \n");
-        while (token != NULL && expressionIsGood)
+        char* term = strtok(enteredExpression, " \n");
+        while (term != NULL && expressionIsGood) 
         {
-            //If an error occurs while parsing, don't partse
-            if(expressionIsGood){
-                if(atof(token)){
-                    //If it is an operand, we just add it to the operand stack
-                    operandStack.push(atof(token));
+            if(expressionIsGood){ //If an error occurs while parsing, don't parse
+                if(atof(term)){  //If the token is an operand, we just add it to the operand stack
+                    operandStack.push(atof(term)); 
                     showOperandStack();
                 } else {
-                    //if the character is an operator, take it to the calculation
-                    doCalculation(token[0]);
+                    doCalculation(term[0]); //if the character is an operator, take it to the calculation
                     showOperandStack();
                 }
             }
-            token = strtok(NULL, " \n");
+            term = strtok(NULL, " \n");
         }
         if(expressionIsGood && operandStack.size == 1){
             cout << "The result of your expression was: " << operandStack.pop() << "\n";
         } else {
-            cout << "Expression not good. Something went wrong.\n";
+            cout << "Expression not good, too many operands or operators!\n";
         }
     }
 
@@ -125,22 +127,21 @@ class Expression {
 
         //If the expression is good, do calculations
         if(expressionIsGood){
-            //Find what operand is being used and base the math expression off of that
-            switch(operatorChar){
+            switch(operatorChar){ //Find what operand is being used and base the math expression off of that
                 case('*'):
-                pushedNum = operand1 * operand2;
-                break;
+                    pushedNum = operand1 * operand2;
+                    break;
                 case('/'):
-                pushedNum = operand1 / operand2;
-                break;
+                    pushedNum = operand1 / operand2;
+                    break;
                 case('+'):
-                pushedNum = operand1 + operand2;
-                break;
+                    pushedNum = operand1 + operand2;
+                    break;
                 case('-'):
-                pushedNum = operand1 - operand2;
-                break;
+                    pushedNum = operand1 - operand2;
+                    break;
                 default:
-                break;
+                    break;
             }
         operandStack.push(pushedNum);
         }
@@ -148,16 +149,10 @@ class Expression {
 
     void showOperandStack(){
         cout << "Operand Stack (TOP ON LEFT):\n";
-        //Set the current node in the loop to the top node of the stack
-        OperandNode* currentOperand = operandStack.top;
-
-        //While the node pointer is pointing to a valid node
-        while(currentOperand != nullptr){
-            //Print the operand
-            cout << currentOperand->getOperand() << " ";
-
-            //Set the current operand pointer to the next operand node
-            currentOperand = currentOperand->next;
+        OperandNode* currentOperand = operandStack.top; //Set the current node in the loop to the top node of the stack
+        while(currentOperand != nullptr){ //While the node pointer is pointing to a valid node
+            cout << currentOperand->getOperand() << " "; //Print the operand
+            currentOperand = currentOperand->next; //Set the current operand pointer to the next operand node
         }
         cout << endl;
     }
@@ -166,15 +161,24 @@ class Expression {
 int main(){
     int totalChars = 0;
     int stackChars = 0;
+    bool continueGood = true;
 
-    //This should be enough for a singular expression, hopefully no one enters a 256 digit expression
-    char expression[256] = "";
-
-    //This is an expression, it contains an operand stack
-    Expression myExpression = Expression();
-    cout << "Enter expression: " << endl;
-    cin.getline(expression, 255);
-    myExpression.enterExpression(expression);
+    char expression[128] = ""; //This should be enough for a singular expression, hopefully no one enters a 128 digit expression
+    Expression myExpression; //This is an expression, it contains an operand stack
+    
+    while(continueGood){ //While the user chooses to enter
+        cout << "Enter expression or -1 to exit program: " << endl;
+        cin.getline(expression, 128);
+        
+        if(strcmp(expression, "-1") == 0){ //If the user enters just -1
+            cout << "Exiting program"; //Exit program
+            continueGood = false;
+        } else {
+            myExpression = Expression();
+            myExpression.enterExpression(expression);
+        }
+    }
+    
     
     return 0;
 }
