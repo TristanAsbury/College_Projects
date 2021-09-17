@@ -10,20 +10,19 @@ using namespace std;
 //  double op which contains the number
 struct OperandNode {
     OperandNode* next;
-    double op;
+    double operand;
     
-    //For head nodes
-    OperandNode(){
+    OperandNode(){ //For head nodes
         next = nullptr;
     }
 
-    OperandNode(double inOp){
-        op = inOp;
+    OperandNode(double inOp){ //For any other node
+        operand = inOp;
         next = nullptr;
     }
 
     double getOperand(){
-        return op;
+        return operand;
     }
 };
 
@@ -33,15 +32,15 @@ struct OperandNode {
 //  OperandNode pointer top, which points to the top node, or the node that is pointed to by the head's next pointer
 //  Int size, which keeps track of the size
 struct OperandStack {
-    OperandNode* head;
+    OperandNode head;
     OperandNode* top;
     int size;
 
     OperandStack(){
-        head = new OperandNode(); //Set head to new node
-        top = head->next;
+        head = OperandNode(); //Set head to new node
+        top = head.next;
         size = 0;
-    }    
+    }
 
     bool empty(){
         return top == nullptr; //If top is nullptr, then the stack is empty
@@ -49,46 +48,61 @@ struct OperandStack {
 
     void push(double inputOp){
         OperandNode* addedNode = new OperandNode(inputOp); //Create pointer to new node
-        addedNode->next = head->next; //Set the new node's next to the heads next
-        head->next = addedNode; //Set head's next pointer to the new node
-        top = head->next; //Set top pointer to the new node
+        addedNode->next = head.next; //Set the new node's next to the heads next
+        head.next = addedNode; //Set head's next pointer to the new node
+        top = head.next; //Set top pointer to the new node
         size++; //Increase size
     }
 
     double pop(){
+        double returnNum;
         if(empty()){
             cout << "Cannot pop, stack empty!";
-            return -1;
+            returnNum = -1;
         } else {
-            double returnNum = top->getOperand();
-            head->next = top->next;
-            delete(top);
-            top = head->next;
+            returnNum = top->operand;
+            head.next = top->next;
+            delete(top); //Delete what the top was pointing to
+            top = head.next; //Set top to point to heads next
             size--;
-            return returnNum;
         }
+        return returnNum;
+    }
+
+    //I had been thinking about what happens if there were any nodes remaining in the stack. This function is called to remove any remaning nodes
+    //and sets the size to zero, allowing it (the stack) to be used for the next expression entered
+    void clear(){
+        OperandNode* tempNode = nullptr;
+        while(top != nullptr){
+            tempNode = top;
+            top = top->next;
+            delete(tempNode);
+        }
+        head.next = top;
+        size = 0;
     }
 };
 
-class Expression {
+class ExpressionEvaluator {
     OperandStack operandStack;
-    bool expressionIsGood;
+    bool expressionIsGood; //This boolean is optional, but the runtime is shorter if a user enters an invalid expression
 
     public:
-    Expression(){
+    ExpressionEvaluator(){
         operandStack = OperandStack();
-        expressionIsGood = true;
+        expressionIsGood = false;
     }
 
     //Add term to expression
-    void enterExpression(char* enteredExpression){
-        char* term = strtok(enteredExpression, " \n");
-        while (term != NULL && expressionIsGood) 
+    void evalExpression(char* enteredExpression){
+        expressionIsGood = true;
+        char* term = strtok(enteredExpression, " \n"); //Tokenize
+        while (term != NULL && expressionIsGood) //While there is still a term and the expression being read is valid  
         {
             if(expressionIsGood){ //If an error occurs while parsing, don't parse
                 if(atof(term)){  //If the token is an operand, we just add it to the operand stack
-                    operandStack.push(atof(term)); 
-                    showOperandStack();
+                    operandStack.push(atof(term));
+                    showOperandStack();   
                 } else {
                     doCalculation(term[0]); //if the character is an operator, take it to the calculation
                     showOperandStack();
@@ -99,51 +113,41 @@ class Expression {
         if(expressionIsGood && operandStack.size == 1){
             cout << "The result of your expression was: " << operandStack.pop() << "\n";
         } else {
-            cout << "Expression not good, too many operands or operators!\n";
+            cout << "Expression not good, not enough operands or operators!\n";
         }
+
+        operandStack.clear(); //Calls a very important method. Clears the stack if there are any nodes remaining for reusability
     }
 
     void doCalculation(char operatorChar){
-        //Pop the 2 top operands. The first operand popped is the second operand in the math expression and the second popped is the first
-        double operand1;
+        double operand1; //Pop the 2 top operands. The first operand popped is the second operand in the math expression and the second popped is the first
         double operand2;
 
-        //If the operand stack isnt empty, then pop; else, give the user an error and set the expression to bad so it doesn't process any further
-        if(!operandStack.empty()){
+        if(operandStack.size >= 2){ //If the operand stack isnt empty, then pop; else, give the user an error and set the expression to bad so it doesn't process any further
             operand2 = operandStack.pop();
-        } else {
-            expressionIsGood = false;
-        }
-
-        //If the operand stack isnt empty, then pop; else, give the user an error and set the expression to bad so it doesn't process any further
-        if(!operandStack.empty()){
             operand1 = operandStack.pop();
         } else {
             expressionIsGood = false;
         }
 
-        //PushedNum is the operand that will pushed back into the operand stack after the math expression
-        double pushedNum = 0;
-
         //If the expression is good, do calculations
         if(expressionIsGood){
             switch(operatorChar){ //Find what operand is being used and base the math expression off of that
                 case('*'):
-                    pushedNum = operand1 * operand2;
+                    operandStack.push(operand1 * operand2);
                     break;
                 case('/'):
-                    pushedNum = operand1 / operand2;
+                    operandStack.push(operand1 / operand2);
                     break;
                 case('+'):
-                    pushedNum = operand1 + operand2;
+                    operandStack.push(operand1 + operand2);
                     break;
                 case('-'):
-                    pushedNum = operand1 - operand2;
+                    operandStack.push(operand1 - operand2);
                     break;
                 default:
                     break;
             }
-        operandStack.push(pushedNum);
         }
     }
 
@@ -159,26 +163,20 @@ class Expression {
 };
 
 int main(){
-    int totalChars = 0;
-    int stackChars = 0;
-    bool continueGood = true;
-
+    bool doContinue = true;
     char expression[128] = ""; //This should be enough for a singular expression, hopefully no one enters a 128 digit expression
-    Expression myExpression; //This is an expression, it contains an operand stack
-    
-    while(continueGood){ //While the user chooses to enter
+    ExpressionEvaluator myEvaluator = ExpressionEvaluator();
+
+    while(doContinue){ //While the user chooses to continue
         cout << "Enter expression or -1 to exit program: " << endl;
         cin.getline(expression, 128);
         
         if(strcmp(expression, "-1") == 0){ //If the user enters just -1
             cout << "Exiting program"; //Exit program
-            continueGood = false;
+            doContinue = false;
         } else {
-            myExpression = Expression();
-            myExpression.enterExpression(expression);
+            myEvaluator.evalExpression(expression);
         }
     }
-    
-    
     return 0;
 }
