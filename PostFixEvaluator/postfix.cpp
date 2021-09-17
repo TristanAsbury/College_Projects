@@ -20,10 +20,6 @@ struct OperandNode {
         operand = inOp;
         next = nullptr;
     }
-
-    double getOperand(){
-        return operand;
-    }
 };
 
 //OperandStack
@@ -32,12 +28,12 @@ struct OperandNode {
 //  OperandNode pointer top, which points to the top node, or the node that is pointed to by the head's next pointer
 //  Int size, which keeps track of the size
 struct OperandStack {
-    OperandNode head;
+    OperandNode head; //Head doesn't need to be a pointer as it is never changing
     OperandNode* top;
     int size;
 
     OperandStack(){
-        head = OperandNode(); //Set head to new node
+        head = OperandNode(); //Set head to a node
         top = head.next;
         size = 0;
     }
@@ -155,7 +151,7 @@ class ExpressionEvaluator {
         cout << "Operand Stack (TOP ON LEFT):\n";
         OperandNode* currentOperand = operandStack.top; //Set the current node in the loop to the top node of the stack
         while(currentOperand != nullptr){ //While the node pointer is pointing to a valid node
-            cout << currentOperand->getOperand() << " "; //Print the operand
+            cout << currentOperand->operand << " "; //Print the operand
             currentOperand = currentOperand->next; //Set the current operand pointer to the next operand node
         }
         cout << endl;
