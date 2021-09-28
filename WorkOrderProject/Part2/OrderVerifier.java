@@ -1,5 +1,4 @@
 import javax.swing.InputVerifier;
-import javax.lang.model.util.SimpleTypeVisitor14;
 import javax.swing.*;
 import java.text.*;
 import java.util.Date;
@@ -14,15 +13,12 @@ public class OrderVerifier extends InputVerifier {
         this.type = type;    
         this.errorLabel = errorLabel;
     }
-
+    
     public boolean verify(JComponent component){
         String input = ((JTextField)component).getText().trim();
         //If the field being verified is the:
         if(type == 0){          //Name
             isValid = true;
-        } else if(type == 1){   //Department 
-            isValid  = (input.equals("SALES") || input.equals("HARDWARE") || input.equals("ELECTRONICS") || input.equals("")); //If it is equal to a valid selection
-            errorLabel.setText("Invalid department.");
         } else if(type == 2){   //Description
             isValid = true;
         } else if(type == 3){   //Billing rate
@@ -43,15 +39,13 @@ public class OrderVerifier extends InputVerifier {
                 errorLabel.setText("Not a number.");
             }
         } else if(type == 4){
-            
-            SimpleDateFormat df = new SimpleDateFormat("MM/dd/yy");
+            SimpleDateFormat df = new SimpleDateFormat("MM/dd/yyyy");
             df.setLenient(false);
             ParsePosition pos = new ParsePosition(0);
             Date d = df.parse(input, pos);
             isValid = (pos.getIndex() == input.length() && d != null) || input.equals("");
-
         } else if(type == 5){
-            SimpleDateFormat df = new SimpleDateFormat("MM/dd/yy");
+            SimpleDateFormat df = new SimpleDateFormat("MM/dd/yyyy");
             df.setLenient(false);
             ParsePosition pos = new ParsePosition(0);
             Date d = df.parse(input, pos);

@@ -7,7 +7,7 @@ import java.io.*;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 
-public class WorkOrderFrame extends JFrame implements ActionListener, ListSelectionListener {
+public class WorkOrderFrame extends JFrame implements ActionListener, ListSelectionListener, DataManager {
     JPanel buttonPanel;
     JPanel scrollerPanel;
 
@@ -15,16 +15,18 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     JMenu fileOptionsMenu;
     JMenu itemOptionsMenu;
 
-    DefaultListModel<String> stringListModel;
-    JList<String> stringList;
+    WorkOrderModel workOrderModel;
+    JList<WorkOrder> workOrderList;
     JScrollPane scroller;
 
     //These menu items are in a wider scope so we can disable them within the methods
     JMenuItem deleteMenuItem;
     JMenuItem deleteAllMenuItem;
+    JMenuItem editMenuItem;
 
     JButton deleteButton;
     JButton exitButton;
+    JButton editButton;
 
     JFileChooser fileChooser;
     File chosenFile;
@@ -40,6 +42,9 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         initButtons();
         initMenuBar();
         setUpFrame();
+        for(int i = 0; i < 10; i++){
+            workOrderModel.addElement(WorkOrder.getRandom());
+        }
     }
 
     private void initIO(){
@@ -49,12 +54,12 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     private void initList(){
         scrollerPanel = new JPanel();
 
-        stringListModel = new DefaultListModel<String>();   //Init the list model, which contains the strings
+        workOrderModel = new WorkOrderModel();   //Init the list model, which contains the strings
         
-        stringList = new JList<String>(stringListModel);    //Init the JList which displays the list model
-        stringList.addListSelectionListener(this);          //Add the JList to the panel
+        workOrderList = new JList<WorkOrder>(workOrderModel);    //Init the JList which displays the list model
+        workOrderList.addListSelectionListener(this);          //Add the JList to the panel
 
-        scroller = new JScrollPane(stringList);             //Create scroller from the stringList
+        scroller = new JScrollPane(workOrderList);             //Create scroller from the workOrderList
         scrollerPanel.add(scroller);
 
         add(scroller, BorderLayout.CENTER);
@@ -71,15 +76,18 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         fileOptionsMenu.add(createMenuItem("Save As", "SAVEAS", this, KeyEvent.VK_A, KeyEvent.VK_A, "Save as..."));
         
         //We create these as named variables since we will be modifying them
-        deleteMenuItem = createMenuItem("Delete", "DELETE", this, KeyEvent.VK_D, KeyEvent.VK_D, "Delete.");
+        deleteMenuItem = createMenuItem("Delete", "DELETE", this, KeyEvent.VK_D, KeyEvent.VK_D, "Delete selected item.");
         deleteMenuItem.setEnabled(false);
         deleteAllMenuItem = createMenuItem("Delete All", "DELETEALL", this, KeyEvent.VK_F, KeyEvent.VK_F, "Delete all.");
         deleteAllMenuItem.setEnabled(false);
+        editMenuItem = createMenuItem("Edit Item", "EDIT", this, KeyEvent.VK_E, KeyEvent.VK_E, "Edit selected item.");
+        editMenuItem.setEnabled(false);
 
         //Add "item" options menu items to itemOptionsMenu
         itemOptionsMenu.add(createMenuItem("New", "NEW", this, KeyEvent.VK_N, KeyEvent.VK_N, "New item."));
         itemOptionsMenu.add(deleteMenuItem);
         itemOptionsMenu.add(deleteAllMenuItem);
+        itemOptionsMenu.add(editMenuItem);
 
         //Add JMenus to JMenuBar
         menuBar.add(fileOptionsMenu);
@@ -89,18 +97,22 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     }
 
     private void initButtons(){
-        buttonPanel = new JPanel(); //Init Panel
+        //Init Panel
+        buttonPanel = new JPanel(); 
 
         //Init buttons
         deleteButton = createButton("Delete", "DELETE", this);
         deleteButton.setEnabled(false);
         exitButton = createButton("Exit", "EXIT", this);
+        editButton = createButton("Edit", "EDIT", this);
+        editButton.setEnabled(false);
         
         //Add buttons to buttonPanel
         buttonPanel.add(createButton("Load", "LOAD", this));
         buttonPanel.add(createButton("Save", "SAVE", this));
         buttonPanel.add(createButton("Save As", "SAVEAS", this));
         buttonPanel.add(createButton("Add", "NEW", this));
+        buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(exitButton);
         
@@ -143,8 +155,8 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         }
 
         if(e.getActionCommand().equals("DELETEALL")){               //IF THE USER IS DELETING ALL THE ITEMS
-            stringListModel.removeAllElements();                    //Simple enough (I think??)
-            deleteAllMenuItem.setEnabled(stringListModel.size() > 0);
+            workOrderModel.removeAllElements();                    //Simple enough (I think??)
+            deleteAllMenuItem.setEnabled(workOrderModel.size() > 0);
         }
 
         if(e.getActionCommand().equals("LOAD")){                    //IF THE USER IS LOADING FROM A FILE
@@ -166,12 +178,18 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         if(e.getActionCommand().equals("EXIT")){                    //IF THE USER PRESSES EXIT
             System.exit(0);
         }
+
+        if(e.getActionCommand().equals("EDIT")){
+            editItem();
+        }
     } 
 
     public void valueChanged(ListSelectionEvent e){
-        if(e.getSource() == stringList){
-            deleteMenuItem.setEnabled(stringList.getSelectedIndices().length > 0);
-            deleteButton.setEnabled(stringList.getSelectedIndices().length > 0);
+        if(e.getSource() == workOrderList){
+            deleteMenuItem.setEnabled(workOrderList.getSelectedIndices().length > 0);
+            deleteButton.setEnabled(workOrderList.getSelectedIndices().length > 0);
+            editButton.setEnabled(workOrderList.getSelectedIndex() >= 0);
+            editMenuItem.setEnabled(workOrderList.getSelectedIndex() >= 0);
         }
     }
 
@@ -183,9 +201,7 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
                 chosenFile = fileChooser.getSelectedFile();
                 fos = new FileOutputStream(chosenFile);             //Try to open up file output stream
                 dos = new DataOutputStream(fos);                    //Try to open data output stream
-                for(int i = 0; i < stringListModel.size(); i++){ 
-                        dos.writeUTF(stringListModel.get(i) + " "); //Write each string from the list into the file
-                }
+                workOrderModel.saveTo(dos);
                 dos.close();                                        //Close data stream
                 fos.close();                                        //Close file output stream
             } catch (IOException o){
@@ -199,43 +215,32 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
 
         if(option == JFileChooser.APPROVE_OPTION){                  //If the user pressed load
             try {
+                deleteAllMenuItem.doClick();
                 chosenFile = fileChooser.getSelectedFile();
                 fis = new FileInputStream(chosenFile);              //Try to open the file input stream
                 dis = new DataInputStream(fis);                     //Try to open up the data stream
-                while(dis.available() > 0){                         //If there is data left to be read
-                    String tempString = dis.readUTF();              //Read the string from the file
-                    stringListModel.add(stringListModel.getSize(), tempString); //Add the string that was just read
-                }
+                workOrderModel.loadFrom(dis);
                 dis.close();                                        //Close input stream
                 fis.close();                                        //Close file input stream
             } catch(IOException o){
                 chosenFile = null;
                 JOptionPane.showMessageDialog(this, "Error loading file!");
-                
             }
         }
-        deleteAllMenuItem.setEnabled(stringListModel.getSize() > 0);
+        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0);
     }
 
     private void newItem(){
-        //Will be set to a string if the user inputs and presses okay, or null if the user presses cancel
-        
-        WorkOrder inputWorkOrder = null;
-        // WorkOrderDialog inputDialog = new WorkOrderDialog(inputWorkOrder);
-        String inputName = JOptionPane.showInputDialog(this, "Please input name:");
-        
-        if(inputName != null && !inputName.trim().equals("")){      //If the user actually put in a string
-            stringListModel.add(stringListModel.size(), inputName); //Add the string to the list of strings
-        }
-        deleteAllMenuItem.setEnabled(stringListModel.getSize() > 0); //Enable the button based on list size
+        WorkOrderDialog addDialog = new WorkOrderDialog(this);
+        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0); //Enable the button based on list size
     }
 
     private void deleteItem(){
-        int[] indices = stringList.getSelectedIndices();            //Get the indices that are selected
-        for(int i = indices.length - 1; i >= 0; i--){               //Loop through them backwards
-            stringListModel.remove(indices[i]);                     //Delete the items at i indices
+        int[] indices = workOrderList.getSelectedIndices();             //Get the indices that are selected
+        for(int i = indices.length - 1; i >= 0; i--){                   //Loop through them backwards
+            workOrderModel.remove(indices[i]);                          //Delete the items at i indices
         }
-        deleteAllMenuItem.setEnabled(stringListModel.getSize() > 0); //Delete all menu items at selected indices
+        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0);     //Delete all menu items at selected indices
     }
 
     private void save(){
@@ -243,9 +248,7 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
             try {
                 fos = new FileOutputStream(chosenFile);             //Try to open the file ouput stream
                 dos = new DataOutputStream(fos);                    //Try to open the data output stream
-                for(int i = 0; i < stringListModel.size(); i++){    //For each item in the list of strings
-                    dos.writeUTF(stringListModel.get(i) + " ");     //Write to the file
-                }
+                workOrderModel.saveTo(dos);
                 dos.close();
                 fos.close();
             } catch (IOException o){
@@ -254,5 +257,18 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         } else {                                                    //If there is not a chosen file
             saveAs();                                               //Treat "save" as "save-as"
         }
+    }
+
+    private void editItem(){
+        WorkOrder editedOrder = workOrderModel.get(workOrderList.getSelectedIndex());
+        WorkOrderDialog editDialog = new WorkOrderDialog(this, editedOrder, workOrderList.getSelectedIndex());
+    }
+
+    public void AddItem(WorkOrder w){
+        workOrderModel.addElement(w);
+    }
+
+    public void ReplaceItem(WorkOrder newOrder, int oldOrderIndex){
+        workOrderModel.set(oldOrderIndex, newOrder);
     }
 }
