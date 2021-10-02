@@ -42,9 +42,10 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         initButtons();
         initMenuBar();
         setUpFrame();
-        for(int i = 0; i < 10; i++){
-            workOrderModel.addElement(WorkOrder.getRandom());
-        }
+        // Un-comment to add random WorkOrders to list
+        // for(int i = 0; i < 10; i++){
+        //     workOrderModel.addElement(WorkOrder.getRandom());
+        // }
     }
 
     private void initIO(){
@@ -126,7 +127,7 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         setSize((int)d.getWidth()/2, (int)d.getHeight()/2);
         setLocation((int)d.getWidth()/4, (int)d.getHeight()/4);
         setVisible(true);
-        setTitle("Part One");
+        setTitle("Work Orders");
     }
 
     //Method to return a JMenuItem with the specified arguments passed
@@ -175,12 +176,12 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
             saveAs();
         }
 
-        if(e.getActionCommand().equals("EXIT")){                    //IF THE USER PRESSES EXIT
-            System.exit(0);
-        }
-
         if(e.getActionCommand().equals("EDIT")){
             editItem();
+        }
+
+        if(e.getActionCommand().equals("EXIT")){                    //IF THE USER PRESSES EXIT
+            System.exit(0);
         }
     } 
 
@@ -231,18 +232,19 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     }
 
     private void newItem(){
-        WorkOrderDialog addDialog = new WorkOrderDialog(this);
+        WorkOrderDialog addDialog = new WorkOrderDialog(this);      //Create the instance of WorkOrderDialog in the add mode
         deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0); //Enable the button based on list size
     }
 
     private void deleteItem(){
         int[] indices = workOrderList.getSelectedIndices();             //Get the indices that are selected
         for(int i = indices.length - 1; i >= 0; i--){                   //Loop through them backwards
-            workOrderModel.remove(indices[i]);                          //Delete the items at i indices
+            workOrderModel.remove(indices[i]);                          //Delete the items at index i
         }
-        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0);     //Delete all menu items at selected indices
+        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0);     //Enable the delete all button based on the workOrderModel contents
     }
 
+    //Save method
     private void save(){
         if(chosenFile != null){                                     //If there is already a chosen file
             try {
@@ -260,8 +262,8 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     }
 
     private void editItem(){
-        WorkOrder editedOrder = workOrderModel.get(workOrderList.getSelectedIndex());
-        WorkOrderDialog editDialog = new WorkOrderDialog(this, editedOrder, workOrderList.getSelectedIndex());
+        WorkOrder editedOrder = workOrderModel.get(workOrderList.getSelectedIndex());   //When a user clicks edit, get the item that they have selected
+        WorkOrderDialog editDialog = new WorkOrderDialog(this, editedOrder, workOrderList.getSelectedIndex());  //With this selection pass it to the constructor of the Dialog
     }
 
     public void AddItem(WorkOrder w){

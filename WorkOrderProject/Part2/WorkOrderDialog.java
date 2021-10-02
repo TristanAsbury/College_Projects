@@ -31,10 +31,10 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
     JTextField billingRateInput;
 
     WorkOrder editedOrder;
-    int oldIndex;
+    
     DataManager dataManager;
-
-    boolean isEditing;
+    int oldIndex; //Old index refers to the index of the item we are editing, this will be passed later to the edit method
+    boolean isEditing; //True if the user pressed the edit button
 
     public WorkOrderDialog(DataManager dataManager){ //For adding
         this.dataManager = dataManager;
@@ -43,15 +43,16 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         setUp();
     }
 
-    public WorkOrderDialog(DataManager dataManager, WorkOrder editedOrder, int oldIndex){ //For editing
+    public WorkOrderDialog(DataManager dataManager, WorkOrder editedOrder, int oldIndex){ //This constructor is called when the user presses the edit button
+        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+        isEditing = true;
         this.oldIndex = oldIndex;
         this.dataManager = dataManager;
         this.editedOrder = editedOrder;
-        isEditing = true;
         createGUI();
-        nameInput.setText(editedOrder.name);
+        //This inserts all information from the edited item into the editing Dialog
+        nameInput.setText(editedOrder.name);                                    
         departmentInput.setSelectedItem(editedOrder.department);
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
         dateReqInput.setText(df.format(editedOrder.requested));
         dateFulInput.setText(df.format(editedOrder.fulfilled));
         descriptionInput.setText(editedOrder.description);
@@ -74,22 +75,20 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         billingRateError = makeLabel("Invalid billing rate.", Color.RED, false);
 
         nameInput = new JTextField(15);
-        nameInput.setInputVerifier(new OrderVerifier(0, nameInputError));
         
         String[] depts = {"SALES", "HARDWARE", "ELECTRONICS"};
         departmentInput = new JComboBox<String>(depts);
 
         dateReqInput = new JTextField(15);
-        dateReqInput.setInputVerifier(new OrderVerifier(4, dateReqError));
+        dateReqInput.setInputVerifier(new OrderDateVerifier(dateReqError));
         
         dateFulInput = new JTextField(15);
-        dateFulInput.setInputVerifier(new OrderVerifier(5, dateFulError));
+        dateFulInput.setInputVerifier(new OrderDateVerifier(dateFulError));
 
         descriptionInput = new JTextField(15);
-        descriptionInput.setInputVerifier(new OrderVerifier(2, descriptionInputError));
 
         billingRateInput = new JTextField(15);
-        billingRateInput.setInputVerifier(new OrderVerifier(3, billingRateError));
+        billingRateInput.setInputVerifier(new OrderRateVerifier(billingRateError));
         
         submitButton = new JButton("Submit");
         submitButton.addActionListener(this);
@@ -131,7 +130,6 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
                     .addComponent(descriptionInputError)
                     .addComponent(billingRateError));
         inputLayout.setHorizontalGroup(hGroup);
-
         GroupLayout.SequentialGroup vGroup = inputLayout.createSequentialGroup();
         vGroup.addGroup(inputLayout.createParallelGroup(Alignment.BASELINE).
                     addComponent(nameInputLabel)
@@ -176,10 +174,10 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         } else if(e.getSource() == submitButton){
             boolean isGood = validateInput();
             if(isGood){
-                if(isEditing){ //if they are editing a work order
+                if(isEditing){                      //if they are editing a work order
                     WorkOrder returnOrder = makeReturnOrder();
                     dataManager.ReplaceItem(returnOrder, oldIndex);
-                } else {        //if they are adding a work order
+                } else {                            //if they are adding a work order
                     WorkOrder returnOrder = makeReturnOrder();
                     dataManager.AddItem(returnOrder);
                 }
@@ -200,23 +198,6 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
             nameInput.requestFocus();
         }
         
-        //Check dates
-        try{                                        
-            long dateReq = df.parse(dateReqInput.getText()).getTime();
-            long dateFul = df.parse(dateFulInput.getText()).getTime();
-            if(dateFul < dateReq){
-                isGood = false;
-                dateFulError.setVisible(true);
-                dateReqError.setVisible(true);
-                dateReqInput.requestFocus();
-            }
-        } catch(ParseException e){
-            isGood = false;
-            dateFulError.setVisible(true);
-            dateReqError.setVisible(true);
-            dateReqInput.requestFocus();
-        }
-
         //Check billing rate
         try {   
             float billingRate;
@@ -231,24 +212,45 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
             billingRateError.setVisible(true);
             billingRateInput.requestFocus();
         }
+
+        //Check dates
+        try{                                        
+            long dateReq = df.parse(dateReqInput.getText()).getTime();
+            long dateFul = df.parse(dateFulInput.getText()).getTime();
+            if(dateFul < dateReq){
+                isGood = false;
+                dateFulInput.requestFocus();
+                dateReqError.setVisible(true);
+                dateFulError.setVisible(true);
+            }
+        } catch(ParseException e){
+            System.out.println("Error parsing");
+            isGood = false;
+            dateFulInput.requestFocus();
+            dateReqError.setVisible(true);
+            dateFulError.setVisible(true);
+        }
+
         return isGood;
     }
 
     private WorkOrder makeReturnOrder(){
         DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-        
+
         String retName = nameInput.getText();
         String retDept = departmentInput.getSelectedItem().toString();
+        String retDesc = descriptionInput.getText();
+        float retBR = Float.parseFloat(billingRateInput.getText());
+
         Date retReq = new Date();
         Date retFul = new Date();
+
         try {
             retReq = df.parse(dateReqInput.getText());
             retFul = df.parse(dateFulInput.getText());
         } catch (ParseException p){
             System.out.println("Problem parsing dates.");
         }
-        String retDesc = descriptionInput.getText();
-        float retBR = Float.parseFloat(billingRateInput.getText());
         return new WorkOrder(retName, retDept, retReq, retFul, retDesc, retBR);
     }
 
@@ -258,8 +260,13 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
         setSize((int)d.getWidth()/4, (int)d.getHeight()/4);
-        setLocation((int)d.getWidth()/4, (int)d.getHeight()/4);
-        setTitle("Part One");
+        setLocation((int)d.getWidth()/3, (int)d.getHeight()/3);
+        //Set title to corresponding action
+        if(isEditing){
+            setTitle("Edit Work Order");
+        } else {
+            setTitle("Add Work Order");
+        }
         setVisible(true);
     }
 }

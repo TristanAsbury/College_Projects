@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Random;
 
@@ -15,6 +16,7 @@ public class WorkOrder {
     public long fulfilled;
     public float billingRate;
 
+    //Constructs workorder from input data
     public WorkOrder(String name, String department, Date requested, Date fulfilled, String description, float billingRate){
         this.name = name;
         this.department = department;
@@ -23,7 +25,8 @@ public class WorkOrder {
         this.description = description;
         this.billingRate = billingRate;
     }
-
+    
+    //Constructs workorder from a dataInputStream
     public WorkOrder(DataInputStream dis){
         try{
             this.name = dis.readUTF();
@@ -38,7 +41,7 @@ public class WorkOrder {
         }
     }
 
-    //Generate random stuff
+    //Generate and return "random" instance of WorkOrder
     public static WorkOrder getRandom(){
         String[] randNames = {"Tristan", "Bob", "George", "Larry", "Gonk", "Bonk"};
         String[] randDepts = {"SALES", "HARDWARE", "ELECTRONICS"};
@@ -48,8 +51,21 @@ public class WorkOrder {
         String randName = randNames[rand.nextInt(6)];
         String randDept = randDepts[rand.nextInt(3)];
         String randDesc = randDescs[rand.nextInt(5)];
-        Date randReq = new Date(rand.nextLong()); //Will get random date
-        Date randFul = new Date((long)(rand.nextFloat() * randReq.getTime())); //Will get a date that is before randReq
+
+        //Generating random dates
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+        Date maxDate = new Date();
+        Date beginDate = new Date();
+        try{
+            beginDate = sdf.parse("1/1/2000");
+            maxDate = sdf.parse("1/1/2200");
+        } catch(ParseException e){
+            e.printStackTrace();
+        }
+        Date randReq = new Date(beginDate.getTime() + (long)(maxDate.getTime() * rand.nextFloat())); //Will get random date 
+        Date randFul = new Date((long)(rand.nextFloat() * beginDate.getTime()) + randReq.getTime()); //Will get a date that is before the requested date
+
+        //Generate random billing rate
         float randBR = (float)(12.8 - (7.2*rand.nextFloat()));
         returnOrder = new WorkOrder(randName, randDept, randReq, randFul, randDesc, randBR);
         return returnOrder;
