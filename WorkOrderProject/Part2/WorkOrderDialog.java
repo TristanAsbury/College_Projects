@@ -13,7 +13,8 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
     JPanel inputPanel;
     JPanel buttonPanel;
 
-    JButton submitButton;
+    JButton sasButton;
+    JButton saeButton;
     JButton cancelButton;
 
     JLabel nameInputLabel, nameInputError;
@@ -90,8 +91,13 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         billingRateInput = new JTextField(15);
         billingRateInput.setInputVerifier(new OrderRateVerifier(billingRateError));
         
-        submitButton = new JButton("Submit");
-        submitButton.addActionListener(this);
+        
+        sasButton = new JButton("Submit And Continue");
+        sasButton.addActionListener(this);
+        sasButton.setVisible(!isEditing);
+
+        saeButton = new JButton("Submit and Exit");
+        saeButton.addActionListener(this);
 
         cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(this);
@@ -99,7 +105,8 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
 
         inputPanel = new JPanel();
         buttonPanel = new JPanel();
-        buttonPanel.add(submitButton);
+        buttonPanel.add(sasButton);
+        buttonPanel.add(saeButton);
         buttonPanel.add(cancelButton);
         
 
@@ -171,7 +178,8 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == cancelButton){
             dispose();
-        } else if(e.getSource() == submitButton){
+        }
+        if(e.getSource() == saeButton){
             boolean isGood = validateInput();
             if(isGood){
                 if(isEditing){                      //if they are editing a work order
@@ -182,6 +190,26 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
                     dataManager.AddItem(returnOrder);
                 }
                 dispose();
+            }
+        }
+        if(e.getSource() == sasButton){
+            boolean isGood = validateInput();
+            if(isGood){
+                if(isEditing){                      //if they are editing a work order
+                    WorkOrder returnOrder = makeReturnOrder();
+                    dataManager.ReplaceItem(returnOrder, oldIndex);
+                } else {                            //if they are adding a work order
+                    WorkOrder returnOrder = makeReturnOrder();
+                    dataManager.AddItem(returnOrder);
+                }
+                if(isGood){
+                    nameInput.setText("");
+                    departmentInput.setSelectedItem("SALES");
+                    dateReqInput.setText("");
+                    dateFulInput.setText("");
+                    billingRateInput.setText("");
+                    descriptionInput.setText("");
+                }
             }
         }
     }
@@ -214,15 +242,24 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         }
 
         //Check dates
-        try{                                        
-            long dateReq = df.parse(dateReqInput.getText()).getTime();
-            long dateFul = df.parse(dateFulInput.getText()).getTime();
-            if(dateFul < dateReq){
-                isGood = false;
-                dateFulInput.requestFocus();
-                dateReqError.setVisible(true);
-                dateFulError.setVisible(true);
+        try{
+            long dateReq;
+            long dateFul;
+            //If the date fulfil IS NOT empty
+            if(!dateFulInput.getText().trim().equals("")){
+                dateReq = df.parse(dateReqInput.getText()).getTime();
+                dateFul = df.parse(dateFulInput.getText()).getTime();
+                if(dateFul < dateReq){
+                    isGood = false;
+                    dateFulInput.requestFocus();
+                    dateReqError.setVisible(true);
+                    dateFulError.setVisible(true);
+                }
+            } else { //If the date fulfil is empty
+                dateReq = df.parse(dateReqInput.getText()).getTime();
+                isGood = true;
             }
+            
         } catch(ParseException e){
             System.out.println("Error parsing");
             isGood = false;
@@ -230,7 +267,6 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
             dateReqError.setVisible(true);
             dateFulError.setVisible(true);
         }
-
         return isGood;
     }
 
@@ -246,8 +282,12 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         Date retFul = new Date();
 
         try {
-            retReq = df.parse(dateReqInput.getText());
-            retFul = df.parse(dateFulInput.getText());
+            if(dateFulInput.getText().trim().equals("")){
+                retFul = new Date(0);
+            } else {
+                retReq = df.parse(dateReqInput.getText());
+                retFul = df.parse(dateFulInput.getText());
+            }
         } catch (ParseException p){
             System.out.println("Problem parsing dates.");
         }

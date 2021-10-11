@@ -3,7 +3,6 @@ import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.TableColumn;
 
 public class WorkOrderTable extends JTable {
-    WorkOrderTableModel wotm;
     DefaultTableColumnModel colMod;
 
     public WorkOrderTable(WorkOrderTableModel wotm){
@@ -25,6 +24,4 @@ public class WorkOrderTable extends JTable {
         col.setHeaderValue(columnName);
         colMod.addColumn(col);
     }
-
-    
 }

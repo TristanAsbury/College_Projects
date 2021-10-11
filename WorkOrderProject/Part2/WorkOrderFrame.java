@@ -1,13 +1,19 @@
 import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
+import java.awt.print.PrinterException;
 import java.awt.Toolkit;
 import java.awt.Dimension;
 import java.io.*;
+import java.util.Calendar;
+import java.awt.dnd.*;
+
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MouseInputListener;
 import javax.swing.event.ListSelectionEvent;
 
-public class WorkOrderFrame extends JFrame implements ActionListener, ListSelectionListener, DataManager {
+
+public class WorkOrderFrame extends JFrame implements ActionListener, ListSelectionListener, MouseInputListener, DropTargetListener {
     JPanel buttonPanel;
     JPanel scrollerPanel;
 
@@ -15,7 +21,6 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     JMenu fileOptionsMenu;
     JMenu itemOptionsMenu;
 
-    WorkOrderModel workOrderModel;
     WorkOrderTableModel workOrderTableModel;
     WorkOrderTable workOrderTable;
     JScrollPane scroller;
@@ -24,18 +29,28 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
     JMenuItem deleteMenuItem;
     JMenuItem deleteAllMenuItem;
     JMenuItem editMenuItem;
+    JMenuItem completePopup;
+    JMenuItem editPopup;
+    JMenuItem deletePopup;
 
     JButton deleteButton;
     JButton exitButton;
     JButton editButton;
+    JButton printButton;
 
     JFileChooser fileChooser;
     File chosenFile;
+
+    JPopupMenu popupMenu;
 
     DataInputStream dis;
     DataOutputStream dos;
     FileInputStream fis;
     FileOutputStream fos;
+
+    DropTarget dropTarget;
+
+    Point mousePos;
 
     WorkOrderFrame(){
         initIO();
@@ -43,10 +58,29 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         initButtons();
         initMenuBar();
         setUpFrame();
-        // Un-comment to add random WorkOrders to list
+        setupPopupMenu();
         for(int i = 0; i < 10; i++){
             workOrderTableModel.addElement(WorkOrder.getRandom());
         }
+    }
+
+    private void setupPopupMenu(){
+        popupMenu = new JPopupMenu();
+        completePopup = new JMenuItem("Mark as complete");
+        completePopup.addActionListener(this);
+        completePopup.setToolTipText("Mark as complete");
+
+        editPopup = new JMenuItem("Edit entry");
+        editPopup.addActionListener(this);
+        editPopup.setToolTipText("Edit...");
+
+        deletePopup = new JMenuItem("Delete entry");
+        deletePopup.addActionListener(this);
+        deletePopup.setToolTipText("Delete");
+
+        popupMenu.add(editPopup);
+        popupMenu.add(deletePopup);
+        popupMenu.add(completePopup);
     }
 
     private void initIO(){
@@ -61,9 +95,14 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         
         workOrderTable = new WorkOrderTable(workOrderTableModel);
         workOrderTable.setMinimumSize(new Dimension(400, 250));
+        workOrderTable.getSelectionModel().addListSelectionListener(this);
         scroller = new JScrollPane(workOrderTable);
         scrollerPanel.add(scroller);
-        scroller.getViewport().setBackground(Color.RED);
+        scroller.getViewport().setBackground(Color.getHSBColor(155, 90, 255));
+
+        dropTarget = new DropTarget(scroller, this);
+
+        workOrderTable.addMouseListener(this);
         add(scroller, BorderLayout.CENTER);
     }
 
@@ -108,12 +147,14 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         exitButton = createButton("Exit", "EXIT", this);
         editButton = createButton("Edit", "EDIT", this);
         editButton.setEnabled(false);
+        printButton = createButton("Print", "PRINT", this);
         
         //Add buttons to buttonPanel
         buttonPanel.add(createButton("Load", "LOAD", this));
         buttonPanel.add(createButton("Save", "SAVE", this));
         buttonPanel.add(createButton("Save As", "SAVEAS", this));
         buttonPanel.add(createButton("Add", "NEW", this));
+        buttonPanel.add(printButton);
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(exitButton);
@@ -157,8 +198,8 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         }
 
         if(e.getActionCommand().equals("DELETEALL")){               //IF THE USER IS DELETING ALL THE ITEMS
-            workOrderModel.removeAllElements();                    //Simple enough (I think??)
-            deleteAllMenuItem.setEnabled(workOrderModel.size() > 0);
+            workOrderTableModel.removeAllElements();                     //Simple enough (I think??)
+            deleteAllMenuItem.setEnabled(workOrderTableModel.getSize() > 0);
         }
 
         if(e.getActionCommand().equals("LOAD")){                    //IF THE USER IS LOADING FROM A FILE
@@ -184,15 +225,42 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         if(e.getActionCommand().equals("EXIT")){                    //IF THE USER PRESSES EXIT
             System.exit(0);
         }
+
+        if(e.getActionCommand().equals("PRINT")){
+                try {
+                    boolean print = workOrderTable.print();
+                    if(!print){
+                        JOptionPane.showMessageDialog(null, "Unable To Print!");
+                    }
+                } catch (PrinterException e1) {
+                    e1.printStackTrace();
+                }
+        }
+
+        if(e.getSource() == completePopup){
+            WorkOrder selectedWO = workOrderTableModel.getItemAt(workOrderTable.rowAtPoint(mousePos));
+            if(selectedWO.fulfilled == 0){
+                selectedWO.fulfilled = Calendar.getInstance().getTimeInMillis();
+            }
+        }
+
+        if(e.getSource() == deletePopup){
+            workOrderTableModel.removeElement(workOrderTable.rowAtPoint(mousePos));
+        }
+
+        if(e.getSource() == editPopup){
+            WorkOrder editedOrder = workOrderTableModel.getElement(workOrderTable.rowAtPoint(mousePos));
+            WorkOrderDialog editDialog = new WorkOrderDialog(workOrderTableModel, editedOrder, workOrderTable.getSelectedRow());
+        }
     } 
 
     public void valueChanged(ListSelectionEvent e){
-        // if(e.getSource() == workOrderList){
-        //     deleteMenuItem.setEnabled(workOrderList.getSelectedIndices().length > 0);
-        //     deleteButton.setEnabled(workOrderList.getSelectedIndices().length > 0);
-        //     editButton.setEnabled(workOrderList.getSelectedIndex() >= 0);
-        //     editMenuItem.setEnabled(workOrderList.getSelectedIndex() >= 0);
-        // }
+        if(e.getSource() == workOrderTable.getSelectionModel()){
+            deleteMenuItem.setEnabled(workOrderTable.getSelectedRows().length > 0);
+            deleteButton.setEnabled(workOrderTable.getSelectedRows().length > 0);
+            editButton.setEnabled(workOrderTable.getSelectedRows().length == 1);
+            editMenuItem.setEnabled(workOrderTable.getSelectedRows().length == 1);
+        }
     }
 
     private void saveAs(){
@@ -203,7 +271,7 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
                 chosenFile = fileChooser.getSelectedFile();
                 fos = new FileOutputStream(chosenFile);             //Try to open up file output stream
                 dos = new DataOutputStream(fos);                    //Try to open data output stream
-                workOrderModel.saveTo(dos);
+                workOrderTableModel.saveTo(dos);
                 dos.close();                                        //Close data stream
                 fos.close();                                        //Close file output stream
             } catch (IOException o){
@@ -221,7 +289,7 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
                 chosenFile = fileChooser.getSelectedFile();
                 fis = new FileInputStream(chosenFile);              //Try to open the file input stream
                 dis = new DataInputStream(fis);                     //Try to open up the data stream
-                workOrderModel.loadFrom(dis);
+                workOrderTableModel.loadFrom(dis);
                 dis.close();                                        //Close input stream
                 fis.close();                                        //Close file input stream
             } catch(IOException o){
@@ -229,25 +297,25 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
                 JOptionPane.showMessageDialog(this, "Error loading file!");
             }
         }
-        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0);
+        deleteAllMenuItem.setEnabled(workOrderTableModel.getSize() > 0);
     }
 
     private void newItem(){
-        WorkOrderDialog addDialog = new WorkOrderDialog(this);      //Create the instance of WorkOrderDialog in the add model
-        deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0); //Enable the button based on list size
+        WorkOrderDialog addDialog = new WorkOrderDialog(workOrderTableModel);       //Create the instance of WorkOrderDialog in the add mode
+        deleteAllMenuItem.setEnabled(workOrderTableModel.getSize() > 0);            //Enable the button based on list size
+    }
+
+    private void editItem(){
+        WorkOrder editedOrder = workOrderTableModel.getElement(workOrderTable.getSelectedRow());
+        WorkOrderDialog editDialog = new WorkOrderDialog(workOrderTableModel, editedOrder, workOrderTable.getSelectedRow());
     }
 
     private void deleteItem(){
-        // int[] indices = workOrderList.getSelectedIndices();             //Get the indices that are selected
-        // for(int i = indices.length - 1; i >= 0; i--){                   //Loop through them backwards
-        //     workOrderModel.remove(indices[i]);                          //Delete the items at index i
-        // }
-        // deleteAllMenuItem.setEnabled(workOrderModel.getSize() > 0);     //Enable the delete all button based on the workOrderModel contents
-        int[] indices = workOrderTable.getSelectedRows();
-        for(int i = indices.length - 1; i >= 0; i--){
-            workOrderTable.remove(indices[i]);
+        int[] rows = workOrderTable.getSelectedRows();
+        for(int i = rows.length - 1; i >= 0; i --){
+            workOrderTableModel.removeElement(rows[i]);
         }
-        deleteAllMenuItem.setEnabled(workOrderTableModel.getRowCount() > 0);
+        deleteAllMenuItem.setEnabled(workOrderTable.getRowCount() > 0);
     }
 
     //Save method
@@ -256,7 +324,7 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
             try {
                 fos = new FileOutputStream(chosenFile);             //Try to open the file ouput stream
                 dos = new DataOutputStream(fos);                    //Try to open the data output stream
-                workOrderModel.saveTo(dos);
+                workOrderTableModel.saveTo(dos);
                 dos.close();
                 fos.close();
             } catch (IOException o){
@@ -267,18 +335,54 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         }
     }
 
-    private void editItem(){
-        //WorkOrder editedOrder = workOrderModel.get(workOrderList.getSelectedIndex());   //When a user clicks edit, get the item that they have selected
-        //WorkOrderDialog editDialog = new WorkOrderDialog(this, editedOrder, workOrderList.getSelectedIndex());  //With this selection pass it to the constructor of the Dialog
-        // WorkOrder editedOrder = workOrderTableModel.get
+    public void mousePressed(MouseEvent e){
+        showPopup(e);
     }
 
-    public void AddItem(WorkOrder w){
-        // workOrderModel.addElement(w);
-        workOrderTableModel.addElement(w);
+    public void mouseEntered(MouseEvent e){
+
     }
 
-    public void ReplaceItem(WorkOrder newOrder, int oldOrderIndex){
-        workOrderModel.set(oldOrderIndex, newOrder);
+    public void mouseReleased(MouseEvent e){
+        showPopup(e);
+    }
+
+    public void mouseDragged(MouseEvent e){
+
+    }
+
+    public void mouseClicked(MouseEvent e){
+        showPopup(e);
+    }
+
+    public void mouseMoved(MouseEvent e){
+
+    }
+
+    public void mouseExited(MouseEvent e){
+
+    }
+
+    private void showPopup(MouseEvent e){
+        mousePos = e.getPoint();
+        if(e.isPopupTrigger()){
+            popupMenu.show(e.getComponent(), e.getX(), e.getY());
+        }
+    }
+
+    public void dropActionChanged(DropTargetDragEvent e){
+        
+    }
+    public void dragExit(DropTargetEvent e){
+        System.out.println("NOT HOVERING");
+    }
+    public void drop(DropTargetDropEvent e){
+        System.out.println("DROPPED!");
+    }
+    public void dragOver(DropTargetDragEvent e){
+        
+    }
+    public void dragEnter(DropTargetDragEvent e){
+        System.out.println("HOVERING");
     }
 }
