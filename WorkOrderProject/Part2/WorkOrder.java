@@ -55,15 +55,15 @@ public class WorkOrder {
         //Generating random dates
         SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
         Date maxDate = new Date();
-        Date beginDate = new Date();
+        Date epochDate = new Date();
         try{
-            beginDate = sdf.parse("1/1/2000");
+            epochDate = sdf.parse("1/1/2000");
             maxDate = sdf.parse("1/1/2200");
         } catch(ParseException e){
             e.printStackTrace();
         }
-        Date randReq = new Date(beginDate.getTime() + (long)(maxDate.getTime() * rand.nextFloat())); //Will get random date 
-        Date randFul = new Date((long)(rand.nextFloat() * beginDate.getTime()) + randReq.getTime()); //Will get a date that is before the requested date
+        Date randReq = new Date(epochDate.getTime() + (long)(maxDate.getTime() * rand.nextFloat())); //Will get random date 
+        Date randFul = new Date((long)(rand.nextFloat() * epochDate.getTime()) + randReq.getTime()); //Will get a date that is before the requested date
 
         //Generate random billing rate
         float randBR = (float)(12.8 - (7.2*rand.nextFloat()));
@@ -93,10 +93,5 @@ public class WorkOrder {
         } catch(IOException e){
             System.out.println("Error saving to file");
         }
-    }
-
-    public String toString(){
-        DateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy");
-        return String.format("Name: %-15s Department: %-15s Requested: %-12s Fulfilled: %-12s Description: %-20s Billing Rate: %4.2f", name, department, simpleDateFormat.format(requested), simpleDateFormat.format(fulfilled), description, billingRate);
     }
 }
