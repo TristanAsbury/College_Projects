@@ -51,6 +51,7 @@ public class WorkOrderTableModel extends AbstractTableModel implements DataManag
 
     public void loadFrom(DataInputStream dis){
         wom.loadFrom(dis);
+        fireTableDataChanged();
     }
     
     public Object getValueAt(int row, int col){
@@ -79,7 +80,19 @@ public class WorkOrderTableModel extends AbstractTableModel implements DataManag
     }
 
     public Class<?> getColumnClass(int c){
-        return String.class;
+        if(c == 0){
+            return String.class;
+        } else if(c==1){
+            return String.class;
+        } else if(c==2){
+            return String.class;
+        } else if(c==3){
+            return String.class;
+        } else if(c==4){
+            return Double.class;
+        } else {
+            return String.class;
+        }
     }
 
     public void AddItem(WorkOrder w){

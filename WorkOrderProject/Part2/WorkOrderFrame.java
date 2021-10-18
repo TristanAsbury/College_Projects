@@ -7,10 +7,9 @@ import java.awt.Dimension;
 import java.io.*;
 import java.util.Calendar;
 import java.awt.dnd.*;
-
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.MouseInputListener;
-import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.*;
+import javax.swing.table.TableRowSorter;
+import java.awt.datatransfer.*;
 
 
 public class WorkOrderFrame extends JFrame implements ActionListener, ListSelectionListener, MouseInputListener, DropTargetListener {
@@ -59,9 +58,9 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         initMenuBar();
         setUpFrame();
         setupPopupMenu();
-        for(int i = 0; i < 10; i++){
-            workOrderTableModel.addElement(WorkOrder.getRandom());
-        }
+        // for(int i = 0; i < 10; i++){
+        //     workOrderTableModel.addElement(WorkOrder.getRandom());
+        // }
     }
 
     private void setupPopupMenu(){
@@ -91,11 +90,17 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         scrollerPanel = new JPanel();
 
         workOrderTableModel = new WorkOrderTableModel();
-        workOrderTableModel.addTableModelListener(workOrderTable);
-        
+
         workOrderTable = new WorkOrderTable(workOrderTableModel);
+        workOrderTableModel.addTableModelListener(workOrderTable);
+
+        TableRowSorter<WorkOrderTableModel> sorter;
+        sorter = new TableRowSorter<WorkOrderTableModel>(workOrderTableModel);
+        workOrderTable.setRowSorter(sorter);
+
         workOrderTable.setMinimumSize(new Dimension(400, 250));
         workOrderTable.getSelectionModel().addListSelectionListener(this);
+
         scroller = new JScrollPane(workOrderTable);
         scrollerPanel.add(scroller);
         scroller.getViewport().setBackground(Color.getHSBColor(155, 90, 255));
@@ -241,6 +246,11 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
             WorkOrder selectedWO = workOrderTableModel.getItemAt(workOrderTable.rowAtPoint(mousePos));
             if(selectedWO.fulfilled == 0){
                 selectedWO.fulfilled = Calendar.getInstance().getTimeInMillis();
+            } else {
+                int op = JOptionPane.showConfirmDialog(this, "Would you like to mark this order as complete on today's date?");
+                if(op == 0){
+                    selectedWO.fulfilled = Calendar.getInstance().getTimeInMillis();
+                }
             }
         }
 
@@ -278,6 +288,23 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
                 JOptionPane.showMessageDialog(this, "Error saving file!");
             }
         }
+    }
+
+    private void load(java.util.List<File> files){
+        try {
+            deleteAllMenuItem.doClick();
+            for(int i = 0; i < files.size(); i++){
+                File curFile = files.get(i);
+                fis = new FileInputStream(curFile);
+                dis = new DataInputStream(fis);
+                workOrderTableModel.loadFrom(dis);
+                dis.close();
+                fis.close();
+            }
+        } catch(IOException io){
+            io.printStackTrace();
+        }
+        deleteAllMenuItem.setEnabled(workOrderTableModel.getSize() > 0);
     }
 
     private void load(){
@@ -368,21 +395,44 @@ public class WorkOrderFrame extends JFrame implements ActionListener, ListSelect
         if(e.isPopupTrigger()){
             popupMenu.show(e.getComponent(), e.getX(), e.getY());
         }
+        
     }
 
     public void dropActionChanged(DropTargetDragEvent e){
         
     }
+
     public void dragExit(DropTargetEvent e){
         System.out.println("NOT HOVERING");
+        workOrderTable.setBackground(Color.getHSBColor(22, 122, 122));
     }
+
     public void drop(DropTargetDropEvent e){
         System.out.println("DROPPED!");
+        java.util.List<File> files;
+        DefaultListModel<String> fileNames = new DefaultListModel<String>();
+        Transferable transferableData;
+        
+        transferableData = e.getTransferable();
+
+        try {
+            if(transferableData.isDataFlavorSupported(DataFlavor.javaFileListFlavor)){
+                e.acceptDrop(DnDConstants.ACTION_COPY);
+                files = (java.util.List<File>)transferableData.getTransferData(DataFlavor.javaFileListFlavor);
+                load(files);
+            }
+        }catch(UnsupportedFlavorException uf){
+            System.out.println("Unsupported file");
+        }catch(IOException io){
+            System.out.println("Bad io exception.");
+        }
+
     }
     public void dragOver(DropTargetDragEvent e){
         
     }
     public void dragEnter(DropTargetDragEvent e){
         System.out.println("HOVERING");
+        workOrderTable.setBackground(Color.getHSBColor(122, 22, 22));
     }
 }

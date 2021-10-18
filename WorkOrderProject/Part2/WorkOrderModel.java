@@ -3,6 +3,7 @@ import java.io.*;
 
 //This class is a "smarter" DefaultListModel that is able to load itself from a file
 public class WorkOrderModel extends DefaultListModel<WorkOrder> {
+    
     //Loadfrom method will automatically load WorkOrder information from the specified dataInputStream
     public void loadFrom(DataInputStream dis){
         try{

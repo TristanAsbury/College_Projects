@@ -94,7 +94,6 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         
         sasButton = new JButton("Submit And Continue");
         sasButton.addActionListener(this);
-        sasButton.setVisible(!isEditing);
 
         saeButton = new JButton("Submit and Exit");
         saeButton.addActionListener(this);
@@ -105,7 +104,9 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
 
         inputPanel = new JPanel();
         buttonPanel = new JPanel();
-        buttonPanel.add(sasButton);
+        if(!isEditing){
+            buttonPanel.add(sasButton);
+        }
         buttonPanel.add(saeButton);
         buttonPanel.add(cancelButton);
         
@@ -285,9 +286,9 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
             if(dateFulInput.getText().trim().equals("")){
                 retFul = new Date(0);
             } else {
-                retReq = df.parse(dateReqInput.getText());
                 retFul = df.parse(dateFulInput.getText());
             }
+            retReq = df.parse(dateReqInput.getText());
         } catch (ParseException p){
             System.out.println("Problem parsing dates.");
         }
@@ -299,7 +300,7 @@ public class WorkOrderDialog extends JDialog implements ActionListener {
         setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
-        setSize((int)d.getWidth()/4, (int)d.getHeight()/4);
+        setSize((int)d.getWidth()/3, (int)d.getHeight()/3);
         setLocation((int)d.getWidth()/3, (int)d.getHeight()/3);
         //Set title to corresponding action
         if(isEditing){
