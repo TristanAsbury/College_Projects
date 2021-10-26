@@ -19,7 +19,7 @@ struct City {
 
     //Shortest path to this node
     int shortestDist;
-    vector<City> shortestPath = vector<City>();
+    vector<City> shortestPathTo = vector<City>();
 
     //The name of the city
     string name;
@@ -30,141 +30,61 @@ struct City {
     }
 };
 
-struct QueueNode {
-    public:
-    City* data;
-    QueueNode* next;
 
-    QueueNode(City* node){
-        data = node;
-        next = nullptr;
-    }
-};
-
-struct Queue {
-    public:
-    QueueNode* front;
-    QueueNode* back;
-
-    Queue(){
-        front = nullptr;
-        back = front;
-    }
-
-    void push(City* node){
-        if(front == nullptr){
-            front = new QueueNode(node);
-            back = front;
-        } else {
-            back->next = new QueueNode(node);
-            back = back->next;
-        }
-    }
-
-    City* pop(){
-        if(back == nullptr){
-            cout << "Cannot pop, queue empty!";
-            return nullptr;
-        } else {
-            City* node = front->data;
-            QueueNode* nextFront = front->next;
-            delete(front);
-            front = nextFront;
-            return node;
-        }
-    }
-};
 
 struct Graph {
-    public:
-    int* distances;
-    int rows;
-    vector<City*> cities = vector<City*>();
-    Graph(){
-        distances = new int[36];
-    }
-    Graph(int numCities){
-        distances = new int[numCities*numCities]; //Creates a square matrix of the cities distances, 0 will be a -> a, 1 will be a -> b, etc.
-        for(int i = 0; i < numCities*numCities; i++){
-            distances[i] = 0;
-        }
-        rows = numCities;
-    }
 
-    //row = from, col = to
-    void setDist(int row, int col, int dist){
-        distances[row*rows+col] = dist; //a, b
-        distances[col*rows+row] = dist; //b, a 
-    }
-
-    void setUpDists(){
-        distances = new int[cities.size()*cities.size()];
-        for(int i = 0; i < cities.size()*cities.size(); i++){
-            distances[i] = 0;
-        }
-    }
-
-    int getDist(int row, int col){
-        return distances[row*rows+col];
-    }
-
-    void addNode(string cityName){
-        cities.push_back(new City(cityName));
-    }
 };
 
 
 
-void dijkstraAlg(Graph* g){
-//For each node in the graph
-    for(int i = 0; i < g->rows; i++){
-        Queue* waitingQueue = new Queue();
-        cout << "Looking at city: " << g->cities.at(i)->name;
+void dijkstraAlg(Graph* g, int sourceIndex){
 
-    }
+    
+    
 }
 
 int main(){
-    string fileName;
-
-    Graph* g = new Graph(6);
-    
-    int matrix[6][6] = {
-    {3, 1, 0, 0, 0},
-       {1, 2, 0, 0},
-          {3, 5, 0},
-             {1, 3},
-                {1},
-                 {}
-    };
-
-    cout << "Adding nodes" << endl;
-    g->addNode("S");
-    g->addNode("A");
-    g->addNode("B");
-    g->addNode("C");
-    g->addNode("D");
-    g->addNode("E");
-
-    cout << "Setting dists" << endl;
-    for(int r = 0; r < 6; r++){
-        for(int c = 0; c < 6-(c+1); c++){
-            g->setDist(r, c+(r+1), matrix[r][c]);
+    int step = 1;
+    int** distances;
+    ifstream file;
+    int lines;
+    file.open("test.txt");
+    if(file.good()){
+        string token;
+        while(!file.eof()){
+            getline(file, token);
+            lines++;
         }
     }
+    file.close();
+    
+    
+    int numCities = (int)(ceil(lines/2)) + 1;
+    distances = new int*[numCities];
+    for (int i = 0; i < numCities; ++i) {
+		distances[i] = new int[numCities];
+	}
 
-    cout << "Getting dists" << endl;
-    for(int r = 0; r < 6; r++){
-        for(int c = 0; c < 6; c++){
-            cout << "Distance from " << g->cities.at(r)->name << " to " << g->cities.at(c)->name << " is: " << g->getDist(r,c) << endl;
-        }
+    Graph myGraph(numCities);
+
+    file.open("test.txt");
+    string cityName;
+
+    for(int i = 0; i < numCities; i++){
+        getline(file, cityName);
+        myGraph.addCity(cityName);
     }
 
-    dijkstraAlg(g);
-
+    //Read adjacency matrix
+    for(int i = 0; i < numCities; i++){
+        for(int j = i + 1; j < numCities; j++){
+            file >> distances[i][j];
+            distances[j][i] = distances[i][j];
+        }
+    }
     
 
-    
-
+    dijkstra(&myGraph, "E", distances);
     return 0;
 }
