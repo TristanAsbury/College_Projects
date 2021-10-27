@@ -54,6 +54,7 @@ void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
     int unvisitedSize = g->numCities;
     int currentNodeIndex;
     City* currentNode = sourceNode;
+    sourceNode->shortestDist = 0;
 
     //Add cities to unvisitedSet
     for(int i = 0; i < g->numCities; i++){
@@ -69,27 +70,36 @@ void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
             currentNodeIndex = i;
         }
     }
+    while(unvisitedSize > 0){
+        // int smallestIndex = currentNodeIndex;
+        // for(int i = 0; i < g->numCities; i++){
+        //     if(unvisitedSet[i]->visited = false){
+        //         if(unvisitedSet[i]->shortestDist < unvisitedSet[smallestIndex]->shortestDist){
+        //             smallestIndex = i;
+        //         }
+        //     }
+        // }
 
-    //For all of the unvisited neighbors
-    for(int i = 0; i < g->numCities; i++){
-        //If the node is a neighbor and it is not visited
-        if(distances[currentNodeIndex][i] > 0 && g->cities[i]->visited == false){
-            cout << "A connected node to " << currentNode->name << " is " << g->cities[i]->name << endl;
-            //If the neighboring city we are checking has a distance that is greater than the current node + the distance to that node, then the shorter distance is this path
-            if(g->cities[i]->shortestDist > currentNode->shortestDist + distances[currentNodeIndex][i]){
-                currentNode->shortestDist = distances[currentNodeIndex][i];
-                g->cities[i]->prevCity = currentNode;
+        // currentNode = unvisitedSet[smallestIndex];
+
+        //For all of the unvisited neighbors
+        for(int i = 0; i < g->numCities; i++){
+            //If the node is a neighbor and it is not visited
+            if(distances[currentNodeIndex][i] > 0 && g->cities[i]->visited == false){
+                cout << "A connected node to " << currentNode->name << " is " << g->cities[i]->name << " with a shortest distance of " << g->cities[i]->shortestDist << endl;
+                if(g->cities[i]->shortestDist == -1 || g->cities[i]->shortestDist > currentNode->shortestDist + distances[currentNodeIndex][i]){
+                    currentNode->shortestDist = distances[currentNodeIndex][i];
+                    g->cities[i]->prevCity = currentNode;
+                }
             }
         }
+        currentNode->visited = true;
+        unvisitedSize--;
     }
-    currentNode->visited = true;
-    unvisitedSize--;
     
-    sourceNode->shortestDist = 0;
-
     for(int i = 0; i < g->numCities; i++){
         if(sourceNode != g->cities[i]){
-            cout << "Shortest distance from " << sourceNode->name << " to " << g->cities[i]->name << " is: ";
+            cout << "Shortest distance from " << sourceNode->name << " to " << g->cities[i]->name << " is " << g->cities[i]->shortestDist << " : ";
             City* currentCity = g->cities[i];
             while(currentCity->prevCity != nullptr){
                 cout << currentCity->name << " to ";
