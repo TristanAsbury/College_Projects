@@ -3,53 +3,46 @@
 #include <fstream>
 #include <string>
 #include <math.h>
+#include <iomanip>
 
 using namespace std;
 
 struct City {
     public:
-    
-    //This is for the visiting queue
-    bool visited;
-
-    //Shortest path to this node
-    int shortestDist;
-    City* prevCity;
-
-    //The name of the city
-    string name;
-
+    bool visited;       //This is for the visiting queue
+    int shortestDist;   //Shortest distance to this node
+    City* prevCity;     //Previous city
+    string name;        //The name of the city
     City(string name){
         prevCity = nullptr;
         this->name = name;
-        visited = false; //-1 = not visited, 1 = visited
-        shortestDist = -1;
+        visited = false; 
+        shortestDist = -1; //Meaning infinity
     }
 };
-
 
 struct Graph {
     City** cities;
     int numCities;
-    int currentNodes;
 
     Graph(int numCities){
         this->numCities = numCities;
         cities = new City*[numCities];
-        currentNodes = 0;
-    }
-
-    void addCity(string name){    
-        cities[currentNodes] = new City(name);
-        currentNodes++;
-
     }
 };
 
-void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
-    //Mark all nodes as unvisited [YES]
-    //Give every node a distance value, and set source node dist to 0 [YES]
+//A recursive function made to read the path by starting at the end node
+void printPath(City* node){
+    //If the node is the first node, then we have reached the end of the recursive function, print this as the first city
+    if(node->prevCity == nullptr){
+        cout << node->name;
+    } else {
+        printPath(node->prevCity);
+        cout << " to " << node->name;
+    }
+}
 
+void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
     City** unvisitedSet = new City*[g->numCities];
     int unvisitedSize = g->numCities;
     int currentNodeIndex;
@@ -58,37 +51,37 @@ void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
 
     //Add cities to unvisitedSet
     for(int i = 0; i < g->numCities; i++){
-        if(g->cities[i] != currentNode){
-            unvisitedSet[i] = g->cities[i];
-        }
+        unvisitedSet[i] = g->cities[i];
     }
 
     //Get the index of the current node
     for(int i = 0; i < g->numCities; i++){
         if(g->cities[i] == sourceNode){
-            cout << "Index of source node is: " << i << endl;
             currentNodeIndex = i;
         }
     }
+    currentNode = sourceNode;
+    //While there are still unvisited nodes in the set
     while(unvisitedSize > 0){
-        // int smallestIndex = currentNodeIndex;
-        // for(int i = 0; i < g->numCities; i++){
-        //     if(unvisitedSet[i]->visited = false){
-        //         if(unvisitedSet[i]->shortestDist < unvisitedSet[smallestIndex]->shortestDist){
-        //             smallestIndex = i;
-        //         }
-        //     }
-        // }
+        int shortestDist = INT_MAX;
 
-        // currentNode = unvisitedSet[smallestIndex];
-
+        //Find the node with the actual shortest dist to use as the current comparison node
+        for(int i = 0; i < g->numCities; i++){
+            if(!unvisitedSet[i]->visited && unvisitedSet[i]->shortestDist != -1){
+                if(unvisitedSet[i]->shortestDist < shortestDist){
+                    shortestDist = unvisitedSet[i]->shortestDist;
+                    currentNode = unvisitedSet[i];
+                    currentNodeIndex = i;
+                }
+            }
+        }
+        
         //For all of the unvisited neighbors
         for(int i = 0; i < g->numCities; i++){
             //If the node is a neighbor and it is not visited
             if(distances[currentNodeIndex][i] > 0 && g->cities[i]->visited == false){
-                cout << "A connected node to " << currentNode->name << " is " << g->cities[i]->name << " with a shortest distance of " << g->cities[i]->shortestDist << endl;
                 if(g->cities[i]->shortestDist == -1 || g->cities[i]->shortestDist > currentNode->shortestDist + distances[currentNodeIndex][i]){
-                    currentNode->shortestDist = distances[currentNodeIndex][i];
+                    g->cities[i]->shortestDist = currentNode->shortestDist + distances[currentNodeIndex][i];
                     g->cities[i]->prevCity = currentNode;
                 }
             }
@@ -99,24 +92,31 @@ void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
     
     for(int i = 0; i < g->numCities; i++){
         if(sourceNode != g->cities[i]){
-            cout << "Shortest distance from " << sourceNode->name << " to " << g->cities[i]->name << " is " << g->cities[i]->shortestDist << " : ";
             City* currentCity = g->cities[i];
-            while(currentCity->prevCity != nullptr){
-                cout << currentCity->name << " to ";
-                currentCity = currentCity->prevCity;
-            }
+            cout << "**********************"<<endl;
+            cout << "The distance from " << sourceNode->name << " to " << g->cities[i]->name << " is " << g->cities[i]->shortestDist << endl;
+            cout << "A shortest path is: ";
+            printPath(currentCity);
             cout << endl;
         }
     }
+    cout << "**********************"<<endl;
 }
-
 
 int main(){
     int step = 1;
     int** distances;
     ifstream file;
+    string filePath;
+    City* inputCity = nullptr;
+
     int lines;
-    file.open("test.txt");
+    do {
+        cout << "Enter file path: ";
+        getline(cin, filePath);
+        file.open(filePath);
+    }while(!file.good());
+    
     if(file.good()){
         string token;
         while(!file.eof()){
@@ -126,28 +126,20 @@ int main(){
     }
     file.close();
     
-    
     int numCities = (int)(ceil(lines/2)) + 1;
     distances = new int*[numCities];
-    
-    for (int i = 0; i < numCities; i++) {
-		distances[i] = new int[numCities];
-	}
+
+    Graph myGraph(numCities);
+    string cityName;
+    file.open(filePath);
 
     for(int r = 0; r < numCities; r++){
+        distances[r] = new int[numCities];
+        getline(file, cityName);
+        myGraph.cities[r] = new City(cityName);
         for(int c = 0; c < numCities; c++){
             distances[r][c] = 0;
         }
-    }
-
-    Graph myGraph(numCities);
-
-    file.open("test.txt");
-    string cityName;
-
-    for(int i = 0; i < numCities; i++){
-        getline(file, cityName);
-        myGraph.addCity(cityName);
     }
 
     //Read adjacency matrix
@@ -157,21 +149,40 @@ int main(){
             distances[j][i] = distances[i][j];
         }
     }
+    file.close();
 
-    City* inputCity;
+    string searchTerm;
+    cout << "Input city name: ";
+    getline(cin, searchTerm);
+
+    
     for(int i = 0; i < myGraph.numCities; i++){
-        if(myGraph.cities[i]->name == "B"){
+        if(myGraph.cities[i]->name == searchTerm){
             inputCity = myGraph.cities[i];
         }
     }
 
-    for(int i = 0; i < numCities; i++){
-        for(int j = 0; j < numCities; j++){
-            cout << distances[i][j] << " ";
+    if(inputCity == nullptr){
+        cout << "City could not be found...";
+    } else {
+        //Print the first city name
+        cout << right << setw(12) << myGraph.cities[0]->name;
+        for(int i = 1; i < numCities; i++){
+            cout << right << setw(6) << myGraph.cities[i]->name;
         }
         cout << endl;
-    }
+        
+        //Print the city name followed by the distances
+        for(int i = 0; i < numCities; i++){
+            cout << setw(6) << myGraph.cities[i]->name; 
+            for(int j = 0; j < numCities; j++){
+                cout << setw(6) << distances[i][j];
+            }
+            cout << endl;
+        }
 
-    dijkstraAlg(&myGraph, inputCity, distances);
+        //Do the dijkstra algorithm
+        dijkstraAlg(&myGraph, inputCity, distances);
+    }
     return 0;
 }
