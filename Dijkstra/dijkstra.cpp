@@ -104,13 +104,15 @@ void dijkstraAlg(Graph* g, City* sourceNode, int** distances){
 }
 
 int main(){
-    int step = 1;
     int** distances;
+    int lines = 0;
+    int numCities;
     ifstream file;
     string filePath;
+    string cityName;
     City* inputCity = nullptr;
+    
 
-    int lines;
     do {
         cout << "Enter file path: ";
         getline(cin, filePath);
@@ -126,11 +128,11 @@ int main(){
     }
     file.close();
     
-    int numCities = (int)(ceil(lines/2)) + 1;
+    numCities = (int)(ceil(lines/2)) + 1;
     distances = new int*[numCities];
 
     Graph myGraph(numCities);
-    string cityName;
+    
     file.open(filePath);
 
     for(int r = 0; r < numCities; r++){
