@@ -1,3 +1,4 @@
+import javax.print.attribute.standard.Media;
 import javax.swing.JPanel;
 import java.util.Vector;
 import java.awt.Graphics;
@@ -13,7 +14,6 @@ public class DrawingPanel extends JPanel {
 
     @Override
     public void paintComponent(Graphics g){
-        removeAll();
         Graphics2D g2D;
         super.paintComponent(g);
         g2D = (Graphics2D)g;
@@ -21,6 +21,7 @@ public class DrawingPanel extends JPanel {
             LivingThing lt = livingThings.get(i);
             lt.draw((Graphics2D)g);
         }
+        
     }
 
 

@@ -14,26 +14,44 @@ public abstract class LivingThing {
     float timeScalar;
     int lifeTime;
     int radius;
+    int xCoord[];
+    int yCoord[];
+    float alpha;
+    
     Color color;
 
     Vector<MortalityListener> mortListeners;
+    Vector<LivingThing> things;
     JPanel lp;
 
     public LivingThing(){
+        alpha = angle;
         xPos = yPos = 0;
+        xCoord = new int[4];
+        yCoord = new int[4];
         timeScalar = 50;
+        this.things = things;
         mortListeners = new Vector<MortalityListener>();
     }
+
+    public void setGravity(boolean gEnabled){
+        yAcc = gEnabled ? 2 : 0;
+    }
+
     public void update(){
         updateVitality();
         float deltaScaledMillis = 1 * (timeScalar/100);
         updateLinearVelocity(deltaScaledMillis);
+        reflect();
         updateCurrentPosition(deltaScaledMillis);
         updateAngularSpeed(deltaScaledMillis);
         updateAngle(deltaScaledMillis);
-        reflect();
+        updateOrientation(deltaScaledMillis);
+        
     }
+
     private void updateVitality(){
+        lifeTime--;
         if(lifeTime <= 0){
             MortalityEvent mortEv = new MortalityEvent(this, true);
             for(int i = 0; i < mortListeners.size(); i++){
@@ -61,15 +79,39 @@ public abstract class LivingThing {
     }
 
     private void updateAngle(float deltaScaledMillis){
-        angle = angle + angularSpeed * deltaScaledMillis;
+        alpha = angle + angularSpeed * deltaScaledMillis;
+    }
+
+    private void updateOrientation(float deltaScaledMillis){
+        for(int i = 0; i < 4; i++){
+            xCoord[i] = (int)(xPos + radius * Math.cos(alpha));
+            yCoord[i] = (int)(yPos + radius * Math.sin(alpha));
+            alpha += Math.PI / 2.0;
+        }
     }
     
     private void reflect(){
-        if(xPos <= 0 || xPos >= lp.getSize().getWidth()){
+        if(xPos <= radius || xPos >= lp.getSize().getWidth()-radius){
+            if(xPos >= (lp.getWidth() - radius)){
+                xPos = lp.getWidth() - radius;
+            }
+            if(xPos <= radius){
+                xPos = radius;
+            }
+            angularSpeed = 0;
+            angle = 0;
             xSpeed = -xSpeed;
         }
 
-        if(yPos <= 0 || yPos >= lp.getSize().getHeight()){
+        if(yPos <= radius || yPos >= lp.getSize().getHeight()-radius){
+            if(yPos >= (lp.getHeight() - radius)){
+                yPos = lp.getHeight() - radius;
+            }
+            if(yPos <= radius){
+                yPos = radius;
+            }
+            angularSpeed = 0;
+            angle = 0;
             ySpeed = -ySpeed;
         }
     }

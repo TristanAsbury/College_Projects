@@ -10,28 +10,39 @@ import java.awt.event.*;
 import javax.swing.JSlider;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
+import javax.swing.*;
 
-public class LivingFrame extends JFrame implements ActionListener, ChangeListener{
+public class LivingFrame extends JFrame implements ActionListener, ChangeListener, MortalityListener{
     DrawingPanel lp;
     Vector<LivingThing> livingThings;
     Timer updateTimer;
     JSlider speedSlider;
     JPanel optionsPanel;
+    JButton addButton;
+    JCheckBox gravityButton;
+    boolean gravity;
 
     public LivingFrame(){
-        setupFrame();
         setupPanel();
         setupUI();
         updateTimer = new Timer(10, this);
         updateTimer.setActionCommand("UPDATE");
         updateTimer.start();
+        setupFrame();
+        lp.repaint();
     }
 
     private void setupUI(){
         optionsPanel = new JPanel();
         speedSlider = new JSlider(1, 100);
+        addButton = new JButton("Add");
+        addButton.addActionListener(this);
+        gravityButton = new JCheckBox("Gravity");
+        gravityButton.addActionListener(this);
         speedSlider.addChangeListener(this);
         optionsPanel.add(speedSlider);
+        optionsPanel.add(addButton);
+        optionsPanel.add(gravityButton);
         add(optionsPanel, BorderLayout.SOUTH);
     }
 
@@ -39,9 +50,6 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         livingThings = new Vector<LivingThing>();
         lp = new DrawingPanel(livingThings);
         add(lp, BorderLayout.CENTER);
-        for(int i = 0; i < 20; i++){
-            livingThings.add(DefaultLivingThing.getRandom(lp));
-        }
         lp.setBackground(Color.BLACK);
     }
 
@@ -57,9 +65,23 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
 
     public void actionPerformed(ActionEvent e){
         if(e.getActionCommand().equals("UPDATE")){
-            for(LivingThing lt : livingThings){
+            for(int i = 0; i < livingThings.size(); i++){
+                LivingThing lt = livingThings.elementAt(i);
                 lt.update();
                 lp.repaint();
+            }
+        }
+
+        if(e.getSource() == addButton){
+            LivingThing lt = DefaultLivingThing.getRandom(lp);
+            lt.addMortalityListener(this);
+            livingThings.addElement(lt);
+            System.out.println(lt.xPos + " " + lt.yPos);
+        }
+
+        if(e.getSource() == gravityButton){
+            for(int i = 0; i < livingThings.size(); i++){
+                livingThings.elementAt(i).setGravity(gravityButton.isSelected());
             }
         }
     }
@@ -68,6 +90,14 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         if(c.getSource() == speedSlider){
             for(LivingThing lt : livingThings){
                 lt.timeScalar = speedSlider.getValue();
+            }
+        }
+    }
+
+    public void onLifeEvent(MortalityEvent me){
+        for(int i = 0; i < livingThings.size(); i++){
+            if(livingThings.elementAt(i)==me.getSource()){
+                livingThings.removeElementAt(i);
             }
         }
     }
