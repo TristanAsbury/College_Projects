@@ -1,3 +1,4 @@
+import java.util.Random;
 import java.util.Vector;
 import javax.swing.JPanel;
 import java.awt.Graphics;
@@ -5,19 +6,23 @@ import java.awt.Graphics2D;
 import java.awt.Color;
 
 public abstract class LivingThing {
+    double conEn;
     float xPos, yPos;
+    float xAcc, yAcc;
     float xSpeed, ySpeed;
+    int xCoord[], yCoord[];
     float angle;
     float angularSpeed;
-    float xAcc, yAcc;
     float angularAcceleration;
     float timeScalar;
-    int lifeTime;
-    int radius;
-    int xCoord[];
-    int yCoord[];
+    double lifeTime;
+    double maxLifeTime;
     float alpha;
-    
+    int numOfPoints;
+    int outerRadius, innerRadius;
+    int opacity;
+    double perfectOpacity;
+    boolean gEnabled;
     Color color;
 
     Vector<MortalityListener> mortListeners;
@@ -25,17 +30,26 @@ public abstract class LivingThing {
     JPanel lp;
 
     public LivingThing(){
-        alpha = angle;
+        alpha = 0;
+        opacity = 255;
+        perfectOpacity = 255;
         xPos = yPos = 0;
-        xCoord = new int[4];
-        yCoord = new int[4];
         timeScalar = 50;
-        this.things = things;
         mortListeners = new Vector<MortalityListener>();
     }
 
     public void setGravity(boolean gEnabled){
-        yAcc = gEnabled ? 2 : 0;
+        this.gEnabled = gEnabled;
+        Random r = new Random();
+        yAcc = gEnabled ? 1 : 0;
+        if(gEnabled){
+            yAcc = 1;
+        } else {
+            yAcc = 0;
+            if(ySpeed <= 0.1){
+                ySpeed = 1 + r.nextFloat() * 3;
+            }
+        }
     }
 
     public void update(){
@@ -57,6 +71,7 @@ public abstract class LivingThing {
             for(int i = 0; i < mortListeners.size(); i++){
                 mortListeners.get(i).onLifeEvent(mortEv);
             }
+            System.out.println("Died");
         }
     }
 
@@ -83,36 +98,44 @@ public abstract class LivingThing {
     }
 
     private void updateOrientation(float deltaScaledMillis){
-        for(int i = 0; i < 4; i++){
-            xCoord[i] = (int)(xPos + radius * Math.cos(alpha));
-            yCoord[i] = (int)(yPos + radius * Math.sin(alpha));
-            alpha += Math.PI / 2.0;
+        double deltaAlpha = Math.PI/numOfPoints;
+        for(int i = 0; i < numOfPoints * 2; i++){
+            if(i%2 == 0){
+                xCoord[i] = (int)(xPos + innerRadius * Math.cos(alpha));
+                yCoord[i] = (int)(yPos + innerRadius * Math.sin(alpha));
+            } else {
+                xCoord[i] = (int)(xPos + outerRadius * Math.cos(alpha));
+                yCoord[i] = (int)(yPos + outerRadius * Math.sin(alpha));
+            }
+            alpha += deltaAlpha;
         }
     }
     
     private void reflect(){
-        if(xPos <= radius || xPos >= lp.getSize().getWidth()-radius){
-            if(xPos >= (lp.getWidth() - radius)){
-                xPos = lp.getWidth() - radius;
+        if(xPos <= outerRadius || xPos >= lp.getSize().getWidth()-outerRadius){
+            if(xPos >= (lp.getWidth() - outerRadius)){
+                xPos = lp.getWidth() - outerRadius;
             }
-            if(xPos <= radius){
-                xPos = radius;
+            if(xPos <= outerRadius){
+                xPos = outerRadius;
             }
             angularSpeed = 0;
             angle = 0;
             xSpeed = -xSpeed;
         }
 
-        if(yPos <= radius || yPos >= lp.getSize().getHeight()-radius){
-            if(yPos >= (lp.getHeight() - radius)){
-                yPos = lp.getHeight() - radius;
+        if(yPos <= outerRadius || yPos >= lp.getSize().getHeight()-outerRadius){
+            if(yPos >= (lp.getHeight() - outerRadius)){
+                yPos = lp.getHeight() - outerRadius;
             }
-            if(yPos <= radius){
-                yPos = radius;
+            if(yPos <= outerRadius){
+                yPos = outerRadius;
             }
-            angularSpeed = 0;
-            angle = 0;
-            ySpeed = -ySpeed;
+            if(gEnabled){
+                ySpeed = (int)(-ySpeed * conEn);
+            } else {
+                ySpeed = -ySpeed;
+            }
         }
     }
     public abstract void draw(Graphics2D g);

@@ -1,10 +1,8 @@
-import java.awt.Toolkit;
 import java.util.Random;
 import javax.swing.JPanel;
-import java.awt.*;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.util.Vector;
+
 public class DefaultLivingThing extends LivingThing {
 
     public DefaultLivingThing(JPanel panel){
@@ -12,26 +10,38 @@ public class DefaultLivingThing extends LivingThing {
     }
 
     public void draw(Graphics2D g){
-        g.drawPolygon(xCoord, yCoord, 4);
+        //If in last 30% of life
+        if(lifeTime <= 0.3*maxLifeTime && perfectOpacity - (255/lifeTime) >= 0){
+            perfectOpacity -= 255 / lifeTime;
+            opacity = (int)perfectOpacity;
+        }
+        color = new Color(color.getRed(), color.getGreen(), color.getBlue(), opacity);
         g.setColor(color);
+        g.fillPolygon(xCoord, yCoord, numOfPoints*2);
     }
 
     public static LivingThing getRandom(JPanel lp){
         Random r = new Random();
         DefaultLivingThing livingThing = new DefaultLivingThing(lp);
+        livingThing.gEnabled = false;
+        livingThing.outerRadius = r.nextInt(40) + 20;
+        livingThing.innerRadius = (int)(livingThing.outerRadius * 0.75);
+        livingThing.numOfPoints = r.nextInt(4) + 10;
+        livingThing.xCoord = new int[livingThing.numOfPoints * 2];
+        livingThing.yCoord = new int[livingThing.numOfPoints * 2];
+        livingThing.conEn = r.nextFloat();
         livingThing.xSpeed = r.nextInt(20) - 10;
         livingThing.ySpeed = r.nextInt(20) - 10;
-        livingThing.xAcc = r.nextFloat() * -2 + 1;
+        livingThing.xAcc = 0;
         livingThing.yAcc = 0;
-        System.out.println("W: " + lp.getWidth() + " H: " + lp.getHeight());
         livingThing.xPos = r.nextInt(lp.getWidth());
         livingThing.yPos = r.nextInt(lp.getHeight());
         livingThing.angle = r.nextFloat() * 360;
         livingThing.angularAcceleration = r.nextFloat() / 2; 
         livingThing.angularSpeed = r.nextFloat();
-        livingThing.lifeTime = (int)(1000 + r.nextFloat() * 3000);
-        livingThing.radius = r.nextInt(20)+10;
-        livingThing.color = Color.getHSBColor(r.nextInt(255), r.nextInt(255), r.nextInt(255));
+        livingThing.maxLifeTime = (int)(500 + r.nextFloat() * 700);
+        livingThing.lifeTime = livingThing.maxLifeTime;
+        livingThing.color = new Color(r.nextInt(128) + 128, r.nextInt(128) + 128, r.nextInt(128) + 128);
         return livingThing;
     }
 }

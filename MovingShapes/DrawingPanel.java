@@ -1,8 +1,6 @@
-import javax.print.attribute.standard.Media;
 import javax.swing.JPanel;
 import java.util.Vector;
 import java.awt.Graphics;
-import java.awt.Color;
 import java.awt.Graphics2D;
 
 public class DrawingPanel extends JPanel {
@@ -19,10 +17,7 @@ public class DrawingPanel extends JPanel {
         g2D = (Graphics2D)g;
         for(int i = 0; i < livingThings.size(); i++){
             LivingThing lt = livingThings.get(i);
-            lt.draw((Graphics2D)g);
+            lt.draw(g2D);
         }
-        
     }
-
-
 }

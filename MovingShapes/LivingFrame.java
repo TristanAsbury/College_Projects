@@ -12,7 +12,7 @@ import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.*;
 
-public class LivingFrame extends JFrame implements ActionListener, ChangeListener, MortalityListener{
+public class LivingFrame extends JFrame implements ActionListener, ChangeListener, MortalityListener {
     DrawingPanel lp;
     Vector<LivingThing> livingThings;
     Timer updateTimer;
@@ -50,7 +50,7 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         livingThings = new Vector<LivingThing>();
         lp = new DrawingPanel(livingThings);
         add(lp, BorderLayout.CENTER);
-        lp.setBackground(Color.BLACK);
+        lp.setBackground(Color.WHITE);
     }
 
     private void setupFrame(){
@@ -76,7 +76,6 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
             LivingThing lt = DefaultLivingThing.getRandom(lp);
             lt.addMortalityListener(this);
             livingThings.addElement(lt);
-            System.out.println(lt.xPos + " " + lt.yPos);
         }
 
         if(e.getSource() == gravityButton){
@@ -94,9 +93,9 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         }
     }
 
-    public void onLifeEvent(MortalityEvent me){
+    public void onLifeEvent(MortalityEvent e){
         for(int i = 0; i < livingThings.size(); i++){
-            if(livingThings.elementAt(i)==me.getSource()){
+            if(livingThings.elementAt(i)==e.getSource()){
                 livingThings.removeElementAt(i);
             }
         }
