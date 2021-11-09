@@ -1,7 +1,6 @@
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputListener;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 import java.util.Vector;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -11,6 +10,8 @@ public class DrawingPanel extends JPanel implements MouseInputListener {
 
     public DrawingPanel(Vector<LivingThing> livingThings){
         this.livingThings = livingThings;
+        addMouseListener(this);
+        addMouseMotionListener(this);
     }
 
     @Override
@@ -25,25 +26,25 @@ public class DrawingPanel extends JPanel implements MouseInputListener {
     }
     
     public void mouseEntered(MouseEvent e){ }
-    public void mouseReleased(MouseEvent e){
-        
-    }
+    public void mouseReleased(MouseEvent e){ }
 
     public void mouseDragged(MouseEvent e){
         for(int i = 0; i < livingThings.size(); i++){
+            livingThings.elementAt(i).chaseDone = false;
             livingThings.elementAt(i).destination = e.getPoint();
         }
     }
+
     public void mouseClicked(MouseEvent e){
-        
+        for(int i = 0; i < livingThings.size(); i++){
+            livingThings.elementAt(i).chaseDone = false;
+            livingThings.elementAt(i).destination = e.getPoint();
+        }
     }
-    public void mouseMoved(MouseEvent e){
-        
-    }
-    public void mouseExited(MouseEvent e){
-        
-    }
-    public void mousePressed(MouseEvent e){
-        
-    }
+
+    public void mouseMoved(MouseEvent e){ }
+
+    public void mouseExited(MouseEvent e){ }
+
+    public void mousePressed(MouseEvent e){ }
 }

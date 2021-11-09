@@ -90,12 +90,13 @@ public abstract class LivingThing {
     }
 
     private void updateLinearVelocity(double deltaScaledMillis){
-        if(chaseEnabled){
+        if(chaseEnabled && destination != null){
             if(!chaseDone){
-                if(yPos != destination.getY()){
-                    xSpeed = ((xPos - destination.getX()) * ySpeed)/(yPos-destination.getY());
-                } else {
+                if(((yPos <= destination.getY() - outerRadius) || (yPos >= destination.getY() + outerRadius)) && ((xPos <= destination.getX() - outerRadius) || (xPos >= destination.getX() + outerRadius))){
                     chaseDone = true;
+                } else {
+                    xSpeed = (destination.getX() - xPos) * 0.1;
+                    ySpeed = (destination.getY() - yPos) * 0.1;
                 }
             }
         } else if(idleEnabled){
@@ -104,18 +105,12 @@ public abstract class LivingThing {
         } else {
             xSpeed = xSpeed + xAcc * deltaScaledMillis; 
             ySpeed = ySpeed + yAcc * deltaScaledMillis;
-        }
-        
+        }   
     }
 
     private void updateCurrentPosition(double deltaScaledMillis){
-        if(chaseEnabled){
-
-        } else {
             xPos = xPos + xSpeed * deltaScaledMillis;
-            yPos = yPos + ySpeed * deltaScaledMillis;
-        }
-        
+            yPos = yPos + ySpeed * deltaScaledMillis; 
     }
 
     private void updateAngularSpeed(double deltaScaledMillis){

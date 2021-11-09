@@ -56,10 +56,13 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         animationIntervalLabel = new JLabel("Animation Int.");
 
         addSingularButton = new JButton("Add Singular Star");
-        addAmountButton = new JButton("Add set amount");
-        clearAllButton = new JButton("Clear all");
-
         addSingularButton.addActionListener(this);
+        
+        addAmountButton = new JButton("Add set amount");
+        addAmountButton.addActionListener(this);
+
+        clearAllButton = new JButton("Clear all");
+        clearAllButton.addActionListener(this);
 
         gravityMode = new JRadioButton("Gravity");
         gravityMode.addActionListener(this);
@@ -190,6 +193,13 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
                 lt.addMortalityListener(this);
                 livingThings.addElement(lt);
             }
+        }
+
+        if(e.getSource() == clearAllButton){
+            for(int i = livingThings.size() - 1; i >= 0; i--){
+                livingThings.remove(i);
+            }
+            lp.repaint();
         }
 
         if(e.getSource() == gravityMode){
