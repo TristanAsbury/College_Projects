@@ -20,7 +20,7 @@ public class DefaultLivingThing extends LivingThing {
         g.fillPolygon(xCoord, yCoord, numOfPoints*2);
     }
 
-    public static LivingThing getRandom(JPanel lp){
+    public static LivingThing getRandom(JPanel lp, boolean grav, int lifeTime){
         Random r = new Random();
         DefaultLivingThing livingThing = new DefaultLivingThing(lp);
         livingThing.gEnabled = false;
@@ -29,7 +29,7 @@ public class DefaultLivingThing extends LivingThing {
         livingThing.numOfPoints = r.nextInt(4) + 10;
         livingThing.xCoord = new int[livingThing.numOfPoints * 2];
         livingThing.yCoord = new int[livingThing.numOfPoints * 2];
-        livingThing.conEn = r.nextFloat();
+        livingThing.conEn = 0.45 + (r.nextFloat()/2);
         livingThing.xSpeed = r.nextInt(20) - 10;
         livingThing.ySpeed = r.nextInt(20) - 10;
         livingThing.xAcc = 0;

@@ -4,25 +4,32 @@ import javax.swing.JPanel;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Color;
+import java.awt.Point;
 
 public abstract class LivingThing {
     double conEn;
-    float xPos, yPos;
-    float xAcc, yAcc;
-    float xSpeed, ySpeed;
+    double xPos, yPos;
+    double xAcc, yAcc;
+    double xSpeed, ySpeed;
     int xCoord[], yCoord[];
-    float angle;
-    float angularSpeed;
-    float angularAcceleration;
-    float timeScalar;
+    double angle;
+    double angularSpeed;
+    double angularAcceleration;
+    double timeScalar;
     double lifeTime;
     double maxLifeTime;
-    float alpha;
+    double alpha;
     int numOfPoints;
     int outerRadius, innerRadius;
     int opacity;
     double perfectOpacity;
     boolean gEnabled;
+    boolean chaseEnabled;
+    boolean idleEnabled;
+    boolean chaseDone;
+
+    Point destination;
+
     Color color;
 
     Vector<MortalityListener> mortListeners;
@@ -36,6 +43,10 @@ public abstract class LivingThing {
         xPos = yPos = 0;
         timeScalar = 50;
         mortListeners = new Vector<MortalityListener>();
+    }
+
+    public void setDest(Point mousePoint){
+        destination = mousePoint;
     }
 
     public void setGravity(boolean gEnabled){
@@ -54,14 +65,13 @@ public abstract class LivingThing {
 
     public void update(){
         updateVitality();
-        float deltaScaledMillis = 1 * (timeScalar/100);
+        double deltaScaledMillis = 1 * (timeScalar/100);
         updateLinearVelocity(deltaScaledMillis);
         reflect();
         updateCurrentPosition(deltaScaledMillis);
         updateAngularSpeed(deltaScaledMillis);
         updateAngle(deltaScaledMillis);
         updateOrientation(deltaScaledMillis);
-        
     }
 
     private void updateVitality(){
@@ -79,25 +89,44 @@ public abstract class LivingThing {
         mortListeners.add(ml);
     }
 
-    private void updateLinearVelocity(float deltaScaledMillis){
-        xSpeed = xSpeed + xAcc * deltaScaledMillis; 
-        ySpeed = ySpeed + yAcc * deltaScaledMillis;
+    private void updateLinearVelocity(double deltaScaledMillis){
+        if(chaseEnabled){
+            if(!chaseDone){
+                if(yPos != destination.getY()){
+                    xSpeed = ((xPos - destination.getX()) * ySpeed)/(yPos-destination.getY());
+                } else {
+                    chaseDone = true;
+                }
+            }
+        } else if(idleEnabled){
+            xSpeed = 0;
+            ySpeed = 0;
+        } else {
+            xSpeed = xSpeed + xAcc * deltaScaledMillis; 
+            ySpeed = ySpeed + yAcc * deltaScaledMillis;
+        }
+        
     }
 
-    private void updateCurrentPosition(float deltaScaledMillis){
-        xPos = xPos + xSpeed * deltaScaledMillis;
-        yPos = yPos + ySpeed * deltaScaledMillis;
+    private void updateCurrentPosition(double deltaScaledMillis){
+        if(chaseEnabled){
+
+        } else {
+            xPos = xPos + xSpeed * deltaScaledMillis;
+            yPos = yPos + ySpeed * deltaScaledMillis;
+        }
+        
     }
 
-    private void updateAngularSpeed(float deltaScaledMillis){
+    private void updateAngularSpeed(double deltaScaledMillis){
         angularSpeed = angularSpeed + angularAcceleration * deltaScaledMillis;
     }
 
-    private void updateAngle(float deltaScaledMillis){
+    private void updateAngle(double deltaScaledMillis){
         alpha = angle + angularSpeed * deltaScaledMillis;
     }
 
-    private void updateOrientation(float deltaScaledMillis){
+    private void updateOrientation(double deltaScaledMillis){
         double deltaAlpha = Math.PI/numOfPoints;
         for(int i = 0; i < numOfPoints * 2; i++){
             if(i%2 == 0){
