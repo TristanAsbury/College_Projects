@@ -7,17 +7,25 @@ import java.awt.Graphics2D;
 
 public class DrawingPanel extends JPanel implements MouseInputListener {
     Vector<LivingThing> livingThings;
+    boolean tracing;
 
     public DrawingPanel(Vector<LivingThing> livingThings){
         this.livingThings = livingThings;
         addMouseListener(this);
         addMouseMotionListener(this);
+        tracing = false;
+    }
+    
+    public void enableTracing(boolean tracing){
+        this.tracing = tracing;
     }
 
     @Override
-    public void paintComponent(Graphics g){
+    protected void paintComponent(Graphics g){
         Graphics2D g2D;
-        super.paintComponent(g);
+        if(!tracing){
+            super.paintComponent(g);
+        }
         g2D = (Graphics2D)g;
         for(int i = 0; i < livingThings.size(); i++){
             LivingThing lt = livingThings.get(i);

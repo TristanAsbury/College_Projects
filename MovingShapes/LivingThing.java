@@ -1,7 +1,6 @@
 import java.util.Random;
 import java.util.Vector;
 import javax.swing.JPanel;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Color;
 import java.awt.Point;
@@ -23,9 +22,7 @@ public abstract class LivingThing {
     int outerRadius, innerRadius;
     int opacity;
     double perfectOpacity;
-    boolean gEnabled;
-    boolean chaseEnabled;
-    boolean idleEnabled;
+    int mode; //0 == idle, 1 == random, 2 == gravity, 3 == chase
     boolean chaseDone;
 
     Point destination;
@@ -49,16 +46,24 @@ public abstract class LivingThing {
         destination = mousePoint;
     }
 
-    public void setGravity(boolean gEnabled){
-        this.gEnabled = gEnabled;
-        Random r = new Random();
-        yAcc = gEnabled ? 1 : 0;
-        if(gEnabled){
-            yAcc = 1;
-        } else {
-            yAcc = 0;
-            if(ySpeed <= 0.1){
-                ySpeed = 1 + r.nextFloat() * 3;
+    public void changeMode(int mode){
+        if(mode != this.mode){
+            this.mode = mode;
+            if(mode == 0){  //Idle
+                ySpeed = 0;
+                xSpeed = 0;
+                yAcc = 0;
+                xAcc = 0;
+            } else if(mode == 1){ //Random
+                Random r = new Random();
+                yAcc = 0;
+                xSpeed = r.nextInt(20) - 10;
+                ySpeed = r.nextInt(20) - 10;
+            } else if(mode == 2){ //Gravity
+                yAcc = 1;
+            } else if(mode == 3){ //Chase
+                yAcc = 0;
+                chaseDone = true;
             }
         }
     }
@@ -67,8 +72,8 @@ public abstract class LivingThing {
         updateVitality();
         double deltaScaledMillis = 1 * (timeScalar/100);
         updateLinearVelocity(deltaScaledMillis);
-        reflect();
         updateCurrentPosition(deltaScaledMillis);
+        reflect();
         updateAngularSpeed(deltaScaledMillis);
         updateAngle(deltaScaledMillis);
         updateOrientation(deltaScaledMillis);
@@ -85,21 +90,26 @@ public abstract class LivingThing {
         }
     }
 
+    
+
     public void addMortalityListener(MortalityListener ml){
         mortListeners.add(ml);
     }
 
     private void updateLinearVelocity(double deltaScaledMillis){
-        if(chaseEnabled && destination != null){
+        //If in chase mode and there is a destination
+        if(mode == 3 && destination != null){
             if(!chaseDone){
-                if(((yPos <= destination.getY() - outerRadius) || (yPos >= destination.getY() + outerRadius)) && ((xPos <= destination.getX() - outerRadius) || (xPos >= destination.getX() + outerRadius))){
+                if(((yPos <= destination.getY() - outerRadius) && (yPos >= destination.getY() + outerRadius)) && ((xPos <= destination.getX() - outerRadius) && (xPos >= destination.getX() + outerRadius))){
                     chaseDone = true;
                 } else {
                     xSpeed = (destination.getX() - xPos) * 0.1;
                     ySpeed = (destination.getY() - yPos) * 0.1;
                 }
+            } else {
+                
             }
-        } else if(idleEnabled){
+        } else if(mode == 0){
             xSpeed = 0;
             ySpeed = 0;
         } else {
@@ -155,13 +165,14 @@ public abstract class LivingThing {
             if(yPos <= outerRadius){
                 yPos = outerRadius;
             }
-            if(gEnabled){
+            if(mode == 2){
                 ySpeed = (int)(-ySpeed * conEn);
             } else {
                 ySpeed = -ySpeed;
             }
         }
     }
+    
     public abstract void draw(Graphics2D g);
 
     public static LivingThing getDefaultLivingThing(JPanel owner){

@@ -23,7 +23,7 @@ public class DefaultLivingThing extends LivingThing {
     public static LivingThing getRandom(JPanel lp, boolean grav, int lifeTime){
         Random r = new Random();
         DefaultLivingThing livingThing = new DefaultLivingThing(lp);
-        livingThing.gEnabled = false;
+        livingThing.mode = 1;
         livingThing.outerRadius = r.nextInt(40) + 20;
         livingThing.innerRadius = (int)(livingThing.outerRadius * 0.75);
         livingThing.numOfPoints = r.nextInt(4) + 10;

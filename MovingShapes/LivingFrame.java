@@ -1,6 +1,10 @@
 import java.awt.Toolkit;
 import java.awt.Dimension;
+import java.awt.Graphics2D;
+
 import javax.swing.JFrame;
+
+import java.util.Random;
 import java.util.Vector;
 import javax.swing.Timer;
 import javax.swing.GroupLayout.Alignment;
@@ -24,10 +28,12 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
     JButton clearAllButton, addSingularButton, addAmountButton;
     JRadioButton idleMode, chaseMode, gravityMode, randomMode;
     ButtonGroup modeGroup;
+    int currentMode;
 
     JCheckBox tracers;
 
     public LivingFrame(){
+        currentMode = 1; //Set mode to random
         setupPanel();
         setupUI();
         updateTimer = new Timer(10, this);
@@ -40,20 +46,31 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
     private void setupUI(){
         modeGroup = new ButtonGroup();
         optionsPanel = new JPanel();
-        speedSlider = new JSlider(1, 100);
-        addAmountSlider = new JSlider(1, 50);
-        lifeTimeSlider = new JSlider(300, 500);
-        gravityAccSlider = new JSlider(1, 5);
-        consEnergySlider = new JSlider(0, 1);
-        animationIntervalSlider = new JSlider(1, 1000);
+        speedSlider = new JSlider(1, 100, 50);
+        speedSlider.addChangeListener(this);
+
+        addAmountSlider = new JSlider(1, 50, 25);
+        addAmountSlider.addChangeListener(this);
+
+        lifeTimeSlider = new JSlider(300, 500, 400);
+        lifeTimeSlider.addChangeListener(this);
+
+        gravityAccSlider = new JSlider(-5, 5, 1);
+        gravityAccSlider.addChangeListener(this);
+
+        consEnergySlider = new JSlider(0, 20, 5);
+        consEnergySlider.addChangeListener(this);
+        
+        animationIntervalSlider = new JSlider(1, 1000, 500);
+        animationIntervalSlider.addChangeListener(this);
 
         modeHeader = new JLabel("Modes:");
         speedLabel = new JLabel("Speed");
         amountLabel = new JLabel("Add Amount");
         lifeTimeLabel = new JLabel("Lifetime");
         gravityAccLabel = new JLabel("Gravity Acceleration");
-        consEnergyLabel = new JLabel("Energy Cons.");
-        animationIntervalLabel = new JLabel("Animation Int.");
+        consEnergyLabel = new JLabel("Energy Conservation");
+        animationIntervalLabel = new JLabel("Animation Interval");
 
         addSingularButton = new JButton("Add Singular Star");
         addSingularButton.addActionListener(this);
@@ -66,12 +83,16 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
 
         gravityMode = new JRadioButton("Gravity");
         gravityMode.addActionListener(this);
+        
         idleMode = new JRadioButton("Idle");
         idleMode.addActionListener(this);
+
         chaseMode = new JRadioButton("Chase");
         chaseMode.addActionListener(this);
+        
         randomMode = new JRadioButton("Random");
         randomMode.addActionListener(this);
+        randomMode.setSelected(true);
 
         modeGroup.add(gravityMode);
         modeGroup.add(idleMode);
@@ -81,7 +102,8 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         tracers = new JCheckBox("Tracers");
         tracers.addActionListener(this);
 
-        speedSlider.addChangeListener(this);
+        
+        
 
         GroupLayout inputLayout = new GroupLayout(optionsPanel);
         optionsPanel.setLayout(inputLayout);
@@ -172,28 +194,69 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
         setVisible(true);
     }
 
+    private void configureAttributes(LivingThing lt){
+        lt.maxLifeTime = lifeTimeSlider.getValue();
+        lt.conEn = consEnergySlider.getValue() / 10;
+        lt.addMortalityListener(this);
+        lt.changeMode(currentMode);
+    }
+
     public void actionPerformed(ActionEvent e){
         if(e.getActionCommand().equals("UPDATE")){
             for(int i = 0; i < livingThings.size(); i++){
                 LivingThing lt = livingThings.elementAt(i);
                 lt.update();
-                lp.repaint();
             }
+            lp.repaint();
         }
 
         if(e.getSource() == addSingularButton){
             LivingThing lt = DefaultLivingThing.getRandom(lp, gravityMode.isSelected(), lifeTimeSlider.getValue());
-            lt.addMortalityListener(this);
             livingThings.addElement(lt);
+            configureAttributes(lt);
         }
 
         if(e.getSource() == addAmountButton){
             for(int i = 0; i < addAmountSlider.getValue(); i++){
                 LivingThing lt = DefaultLivingThing.getRandom(lp, gravityMode.isSelected(), lifeTimeSlider.getValue());
-                lt.addMortalityListener(this);
                 livingThings.addElement(lt);
+                configureAttributes(lt);
             }
         }
+
+        if(e.getSource() == idleMode){
+            if(idleMode.isSelected()){
+                for(LivingThing lt : livingThings){
+                    currentMode = 0;
+                    lt.changeMode(0);
+                }
+            }
+        }
+
+        if(e.getSource() == randomMode){
+            if(randomMode.isSelected()){
+                for(LivingThing lt : livingThings){
+                    currentMode = 1;
+                    lt.changeMode(1);
+                }
+            }
+        }
+
+        if(e.getSource() == gravityMode){
+            for(LivingThing lt : livingThings){
+                currentMode = 2;
+                lt.changeMode(2);
+            }
+        }
+
+        if(e.getSource() == chaseMode){
+            for(LivingThing lt : livingThings){
+                currentMode = 3;
+                lt.changeMode(3);
+            }
+        }
+
+
 
         if(e.getSource() == clearAllButton){
             for(int i = livingThings.size() - 1; i >= 0; i--){
@@ -202,20 +265,10 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
             lp.repaint();
         }
 
-        if(e.getSource() == gravityMode){
-            for(int i = 0; i < livingThings.size(); i++){
-                LivingThing thing = livingThings.elementAt(i);
-                thing.chaseEnabled = false;
-                thing.chaseEnabled = false;
-                thing.setGravity(true);
-            }
-        }
+        
 
-        if(e.getSource() == chaseMode){
-            for(int i = 0; i < livingThings.size(); i++){
-                livingThings.elementAt(i).setGravity(false);
-                livingThings.elementAt(i).chaseEnabled = true;
-            }
+        if(e.getSource() == tracers){
+            lp.enableTracing(tracers.isSelected());
         }
     }
 
@@ -224,6 +277,25 @@ public class LivingFrame extends JFrame implements ActionListener, ChangeListene
             for(LivingThing lt : livingThings){
                 lt.timeScalar = speedSlider.getValue();
             }
+        }
+
+        if(c.getSource() == consEnergySlider){
+            for(LivingThing lt : livingThings){
+                lt.conEn = consEnergySlider.getValue() / 10;
+            }
+        }
+
+        if(c.getSource() == gravityAccSlider){
+            for(LivingThing lt : livingThings){
+                lt.yAcc = gravityAccSlider.getValue();
+            }
+        }
+
+        if(c.getSource() == animationIntervalSlider){
+            updateTimer.stop();
+            updateTimer = new Timer(animationIntervalSlider.getValue(), this);
+            updateTimer.setActionCommand("UPDATE");
+            updateTimer.start();
         }
     }
 
