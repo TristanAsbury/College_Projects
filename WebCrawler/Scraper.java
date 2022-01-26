@@ -20,6 +20,4 @@ public class Scraper {
             System.out.println("Something went terribly wrong mr!");
         }
     }
-
-    
 }
