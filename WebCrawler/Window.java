@@ -19,7 +19,7 @@ public class Window extends JFrame implements ActionListener {
     String currentHTMLLine;
 
     public Window(){
-        //Input UI
+        // Input UI
         goButton = new JButton("Go");
         goButton.addActionListener(this);
         urlField = new JTextField(20);
@@ -28,7 +28,7 @@ public class Window extends JFrame implements ActionListener {
         inputPanel.add(urlField);
         add(inputPanel, BorderLayout.NORTH);
 
-        //Output UI
+        // Output UI
         // htmlTextContainer = new DefaultListModel<String>();
         // htmlBox = new JList<String>(htmlTextContainer);
         // outputPanel = new JScrollPane(htmlBox);

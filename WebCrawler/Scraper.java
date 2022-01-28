@@ -2,7 +2,6 @@
 import javax.swing.text.html.parser.ParserDelegator;
 import java.io.*;
 import java.net.*;
-import java.util.List;
 
 public class Scraper {
     ParserDelegator pd;
@@ -17,7 +16,7 @@ public class Scraper {
             pd = new ParserDelegator();
             pd.parse(is, myHandler, true);
         } catch (IOException ioe){
-            System.out.println("Something went terribly wrong mr!");
+            System.out.println("Something went terribly wrong!");
         }
     }
 }
