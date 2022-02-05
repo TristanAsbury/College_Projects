@@ -1,15 +1,21 @@
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.net.MalformedURLException;
+import java.net.URL;
+import javax.swing.DefaultListModel;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLEditorKit;
 
 public class Handler extends HTMLEditorKit.ParserCallback {
-    DataOutputStream dos;
-    FileOutputStream fos;
     Pattern pattern = Pattern.compile("[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})");
+    DefaultListModel<SiteNode> sites;
+    int distance;
+
+    public Handler(DefaultListModel<SiteNode> sites, int distance){
+        this.distance = distance;
+        this.sites = sites;
+    }
 
     @Override
     public void handleSimpleTag(HTML.Tag t, MutableAttributeSet a, int pos){
@@ -25,6 +31,26 @@ public class Handler extends HTMLEditorKit.ParserCallback {
                 Matcher matcher = pattern.matcher(attributeText);
                 if(!attributeText.toLowerCase().startsWith("mailto:")){ //If the attribute doesn't have mailto, then its just a link
                     System.out.println("Found a link: " + attributeText);
+                    boolean isInList = false;
+
+                    for(int i = 0; i < sites.size(); i++){
+                        if(sites.get(i).url.toString() == attributeText){
+                            System.out.println("Found a duplicate.");
+                            isInList = true;
+                        }
+                    } 
+
+                    if(!isInList){ //If the url found is not in the list, add it to the list of sites
+                        try {
+                            sites.addElement(new SiteNode(distance+1, new URL(attributeText)));
+                        } catch (MalformedURLException mue){
+                            System.out.println("Couldnt add site to list of sites");
+                        }
+                        
+                    } 
+
+
+                    
                 } else {                                                //Else, it is another email
                     boolean done = false;
                     while(!done){

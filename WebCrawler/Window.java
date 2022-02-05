@@ -17,6 +17,7 @@ public class Window extends JFrame implements ActionListener {
     DefaultListModel<String> htmlTextContainer;
     JList<String> htmlBox;
     String currentHTMLLine;
+    DefaultListModel<SiteNode> sites;
 
     public Window(){
         // Input UI
@@ -27,12 +28,6 @@ public class Window extends JFrame implements ActionListener {
         inputPanel.add(goButton);
         inputPanel.add(urlField);
         add(inputPanel, BorderLayout.NORTH);
-
-        // Output UI
-        // htmlTextContainer = new DefaultListModel<String>();
-        // htmlBox = new JList<String>(htmlTextContainer);
-        // outputPanel = new JScrollPane(htmlBox);
-        // add(outputPanel, BorderLayout.CENTER);
         setupWindow();
     }
 
@@ -49,7 +44,7 @@ public class Window extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == goButton){
             try{
-                lilScraper = new Scraper(new URL(urlField.getText()));
+                lilScraper = new Scraper(new URL(urlField.getText()), sites, 0);
             } catch(MalformedURLException mue){
                 System.out.println("Invalid URL!");
             }
