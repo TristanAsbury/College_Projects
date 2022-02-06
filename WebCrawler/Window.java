@@ -17,7 +17,7 @@ public class Window extends JFrame implements ActionListener {
     DefaultListModel<String> htmlTextContainer;
     JList<String> htmlBox;
     String currentHTMLLine;
-    DefaultListModel<SiteNode> sites;
+    
 
     public Window(){
         // Input UI
@@ -28,6 +28,10 @@ public class Window extends JFrame implements ActionListener {
         inputPanel.add(goButton);
         inputPanel.add(urlField);
         add(inputPanel, BorderLayout.NORTH);
+        htmlTextContainer = new DefaultListModel<String>();
+        htmlBox = new JList<String>(htmlTextContainer);
+        outputPanel = new JScrollPane(htmlBox);
+        add(outputPanel, BorderLayout.CENTER);
         setupWindow();
     }
 
@@ -44,7 +48,10 @@ public class Window extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == goButton){
             try{
-                lilScraper = new Scraper(new URL(urlField.getText()), sites, 0);
+                lilScraper = new Scraper(new URL(urlField.getText()), 1);
+                for(int i = 0; i < lilScraper.sites.size(); i++){
+                    htmlTextContainer.addElement(lilScraper.sites.get(i).url.toString() + " DIST: " + lilScraper.sites.get(i).distance + " LINKS: " + lilScraper.sites.get(i).numLinks);
+                }
             } catch(MalformedURLException mue){
                 System.out.println("Invalid URL!");
             }

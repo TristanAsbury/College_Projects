@@ -1,19 +1,17 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.net.MalformedURLException;
-import java.net.URL;
-import javax.swing.DefaultListModel;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLEditorKit;
 
 public class Handler extends HTMLEditorKit.ParserCallback {
     Pattern pattern = Pattern.compile("[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})");
-    DefaultListModel<SiteNode> sites;
-    int distance;
+    SiteNodeModel sites;
+    SiteNode origin;
 
-    public Handler(DefaultListModel<SiteNode> sites, int distance){
-        this.distance = distance;
+    public Handler(SiteNodeModel sites, SiteNode origin){
+        System.out.println("--------------------------------------------------------------------------------------------------CURRENTLY VISITING: " + origin.url.toString());
+        this.origin = origin;
         this.sites = sites;
     }
 
@@ -26,32 +24,31 @@ public class Handler extends HTMLEditorKit.ParserCallback {
     public void handleStartTag(HTML.Tag t, MutableAttributeSet a, int pos){
         if(t == HTML.Tag.A){
             Object att = a.getAttribute(HTML.Attribute.HREF);
-            if(att != null){    //If there is an attribute
+            if(att != null){                                                            //If there is an attribute
                 String attributeText = a.getAttribute(HTML.Attribute.HREF).toString();  //Turn the attribute into a string
                 Matcher matcher = pattern.matcher(attributeText);
-                if(!attributeText.toLowerCase().startsWith("mailto:")){ //If the attribute doesn't have mailto, then its just a link
-                    System.out.println("Found a link: " + attributeText);
-                    boolean isInList = false;
+                if(!attributeText.toLowerCase().startsWith("mailto:") && origin.distance < sites.maxRadius){                 //If the attribute doesn't have mailto, then its just a link
+                    System.out.println("FOUND A LINK ON " + origin.url.toString() + " : " + attributeText);
+                    String finishedURL = "";
 
-                    for(int i = 0; i < sites.size(); i++){
-                        if(sites.get(i).url.toString() == attributeText){
-                            System.out.println("Found a duplicate.");
-                            isInList = true;
+                    if(attributeText.startsWith("http")){           //If the url found is NORMAL!!!!
+                        sites.addSite(attributeText, origin);
+                    } else if(attributeText.startsWith("/")){                                       //If relative path starting with '/'
+                        if(origin.url.toString().charAt(origin.url.toString().length()-1) == '/'){ //If the origin ends in a '/'
+                            finishedURL = origin.url.toString().substring(0, origin.url.toString().length()-1) + attributeText;
+                        } else {
+                            finishedURL = origin.url.toString() + attributeText;
                         }
-                    } 
-
-                    if(!isInList){ //If the url found is not in the list, add it to the list of sites
-                        try {
-                            sites.addElement(new SiteNode(distance+1, new URL(attributeText)));
-                        } catch (MalformedURLException mue){
-                            System.out.println("Couldnt add site to list of sites");
+                    } else {                                                                        //If the relative path doesn't start with '/' or 'http'                                  
+                        if(origin.url.toString().charAt(origin.url.toString().length()-1) == '/'){  //If the origin ends in a '/'
+                            finishedURL = origin.url.toString() + attributeText;
+                        } else {                                                                    //Else, just add a '/'
+                            finishedURL = origin.url.toString() + "/" + attributeText;
                         }
-                        
-                    } 
+                    }
+                    sites.addSite(finishedURL, origin);
 
-
-                    
-                } else {                                                //Else, it is another email
+                } else {                                                                //Else, it is another email
                     boolean done = false;
                     while(!done){
                         if(matcher.find()){
@@ -73,7 +70,9 @@ public class Handler extends HTMLEditorKit.ParserCallback {
         boolean done = false;
         while(!done){
             if(matcher.find()){
-                System.out.println("Found an email: " + text.substring(matcher.start(), matcher.end()));
+                String email = text.substring(matcher.start(), matcher.end());
+                System.out.println("Found an email: " + email);
+                origin.emails.addElement(email);
                 matcher.region(matcher.end(), text.length());
             } else {
                 done = true;
