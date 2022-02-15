@@ -13,33 +13,33 @@ public class Scraper {
     long currentRuntime;
 
     //InputURL is the URL that will be scraping
-    public Scraper(URL inputURL, int maxRadius){
+    public Scraper(URL inputURL){
         this.inputURL = inputURL;
         this.sites = new SiteNodeModel();
         sites.addElement(new SiteNode(0, inputURL));
-        doScraping();
         startTime = new Date().getTime();
         currentRuntime = 0;
+        doScraping();
     }
 
     public void doScraping(){
-        while(!sites.allVisited() && currentRuntime < Attributes.MAX_RUNTIME){      //While all the sites havent been visited and the runtime isnt over max runTime
-
+        while(!sites.allVisited() && currentRuntime < Params.MAX_RUNTIME){      //While all the sites havent been visited and the runtime isnt over max runTime
             currentRuntime = new Date().getTime() - startTime;                      //Update current runtime in millis
-
-            myHandler = new Handler(sites, sites.getNextNode());
+            SiteNode currentSite = sites.getNextNode();
+            myHandler = new Handler(sites, currentSite);
             
             //Parses all the information on the page
             try{
-                is = new InputStreamReader(inputURL.openStream()); 
+                is = new InputStreamReader(currentSite.url.openStream()); 
                 pd = new ParserDelegator();
-                pd.parse(is, myHandler, true);                                      //Parse the site
+                pd.parse(is, myHandler, true);                                  //Parse the site
                 System.out.println("Checked: " + sites.getNextNode().url + " and found " + sites.getNextNode().emails.size() + " emails.");
-                sites.getNextNode().visited = true;
+                currentSite.visited = true;
             } catch (IOException ioe){
                 System.out.println("Something went terribly wrong!");
+                currentSite.visited = true;
+                sites.removeElement(currentSite);
             }
-
         }
     }
 }

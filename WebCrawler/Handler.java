@@ -25,11 +25,11 @@ public class Handler extends HTMLEditorKit.ParserCallback {
             if(att != null){                                                            //If there is an attribute
                 String attributeText = a.getAttribute(HTML.Attribute.HREF).toString();  //Turn the attribute into a string
                 Matcher matcher = pattern.matcher(attributeText);
-                if(!attributeText.toLowerCase().startsWith("mailto:") && origin.distance < Attributes.MAX_RADIUS){                 //If the attribute doesn't have mailto, then its just a link
+                if(!attributeText.toLowerCase().startsWith("mailto:") && origin.distance < Params.MAX_RADIUS){  //If the attribute doesn't have mailto, then its just a link
                     System.out.println("FOUND A LINK ON " + origin.url.toString() + " : " + attributeText);
                     String finishedURL = "";
 
-                    if(attributeText.startsWith("http")){           //If the url found is NORMAL!!!!
+                    if(attributeText.startsWith("http")){                                       //If the url found is NORMAL!!!!
                         sites.addSite(attributeText, origin);
                     } else if(attributeText.startsWith("/")){                                       //If relative path starting with '/'
                         if(origin.url.toString().charAt(origin.url.toString().length()-1) == '/'){ //If the origin ends in a '/'
@@ -78,5 +78,4 @@ public class Handler extends HTMLEditorKit.ParserCallback {
         }
     }
 }
-
 

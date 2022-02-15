@@ -19,31 +19,32 @@ public class SiteNodeModel extends DefaultListModel<SiteNode> {
             System.out.println("Attemping to add: " + url);
             URL addedURL = new URL(url.toLowerCase());
             if(!isDuplicate(addedURL)){ //If the new URL is not a duplicate, then don't add it to the list, otherwise do
-                if(this.size() > 0){
-                    boolean foundSpot = false;
-                    int index = 0;
-                    
-                    while(!foundSpot && index < this.size()){                                       //is the newly added greater than/equal to the compared?                                     
-                        if(url.toLowerCase().compareTo(this.get(index).url.toString()) >= 0){       
-                            index++;    
-                        } else {
-                            this.add(index, new SiteNode(origin.distance+1, addedURL));             //If not, then add where it is
-                            foundSpot = true;
-                        }
-                    }
-                    if(foundSpot == false){
-                        this.add(0, new SiteNode(origin.distance+1, addedURL));
-                    }
-                    
-                    //Go through all of the sites
-                    
-                } else {
-                    this.addElement(new SiteNode(origin.distance+1, addedURL));    
-                }
-                System.out.println("Added url!");
+            //     if(this.size() > 0){
+            //         boolean foundSpot = false;
+            //         int index = 0;
+            //         while(!foundSpot && index < this.size()){                                       //is the newly added greater than/equal to the compared?                                     
+            //             if(url.toLowerCase().compareTo(this.get(index).url.toString()) >= 0){       
+            //                 index++;
+            //             } else {
+            //                 this.add(index, new SiteNode(origin.distance+1, addedURL));             //If not, then add where it is
+            //                 foundSpot = true;
+            //             }
+            //         }
+            //         if(foundSpot == false){
+            //             this.add(0, new SiteNode(origin.distance+1, addedURL));
+            //         }  
+            //     } else {
+            //         this.addElement(new SiteNode(origin.distance+1, addedURL));    
+            //     }
+            //     System.out.println("Added url!");
+            // }
+            //     this.addElement(new SiteNode(origin.distance+1, addedURL));
+            //     origin.numLinks++;
+            this.addElement(new SiteNode(origin.distance+1, addedURL));
             }
-            origin.numLinks++;
+            
         } catch (MalformedURLException mue){
+            System.out.println("AAHHH");
         }
     }
 
