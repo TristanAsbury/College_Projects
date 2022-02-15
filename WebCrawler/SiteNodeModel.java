@@ -3,11 +3,6 @@ import java.net.URL;
 import javax.swing.DefaultListModel;
 
 public class SiteNodeModel extends DefaultListModel<SiteNode> {
-    int maxRadius;
-
-    SiteNodeModel(int maxRadius){
-        this.maxRadius = maxRadius;
-    }
 
     public boolean allVisited(){
         //Search through all, if a node which hasnt been visited is found, return false
@@ -20,16 +15,35 @@ public class SiteNodeModel extends DefaultListModel<SiteNode> {
     }
 
     public void addSite(String url, SiteNode origin){
-        
         try{
             System.out.println("Attemping to add: " + url);
-            URL addedURL = new URL(url);
+            URL addedURL = new URL(url.toLowerCase());
             if(!isDuplicate(addedURL)){ //If the new URL is not a duplicate, then don't add it to the list, otherwise do
-                this.addElement(new SiteNode(origin.distance+1, addedURL));
+                if(this.size() > 0){
+                    boolean foundSpot = false;
+                    int index = 0;
+                    
+                    while(!foundSpot && index < this.size()){                                       //is the newly added greater than/equal to the compared?                                     
+                        if(url.toLowerCase().compareTo(this.get(index).url.toString()) >= 0){       
+                            index++;    
+                        } else {
+                            this.add(index, new SiteNode(origin.distance+1, addedURL));             //If not, then add where it is
+                            foundSpot = true;
+                        }
+                    }
+                    if(foundSpot == false){
+                        this.add(0, new SiteNode(origin.distance+1, addedURL));
+                    }
+                    
+                    //Go through all of the sites
+                    
+                } else {
+                    this.addElement(new SiteNode(origin.distance+1, addedURL));    
+                }
                 System.out.println("Added url!");
             }
             origin.numLinks++;
-        } catch (MalformedURLException mue ){
+        } catch (MalformedURLException mue){
         }
     }
 

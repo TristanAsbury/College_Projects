@@ -16,9 +16,7 @@ public class Handler extends HTMLEditorKit.ParserCallback {
     }
 
     @Override
-    public void handleSimpleTag(HTML.Tag t, MutableAttributeSet a, int pos){
-        
-    }
+    public void handleSimpleTag(HTML.Tag t, MutableAttributeSet a, int pos){}
 
     @Override
     public void handleStartTag(HTML.Tag t, MutableAttributeSet a, int pos){
@@ -27,7 +25,7 @@ public class Handler extends HTMLEditorKit.ParserCallback {
             if(att != null){                                                            //If there is an attribute
                 String attributeText = a.getAttribute(HTML.Attribute.HREF).toString();  //Turn the attribute into a string
                 Matcher matcher = pattern.matcher(attributeText);
-                if(!attributeText.toLowerCase().startsWith("mailto:") && origin.distance < sites.maxRadius){                 //If the attribute doesn't have mailto, then its just a link
+                if(!attributeText.toLowerCase().startsWith("mailto:") && origin.distance < Attributes.MAX_RADIUS){                 //If the attribute doesn't have mailto, then its just a link
                     System.out.println("FOUND A LINK ON " + origin.url.toString() + " : " + attributeText);
                     String finishedURL = "";
 
