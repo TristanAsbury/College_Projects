@@ -1,7 +1,6 @@
 import javax.swing.text.html.parser.ParserDelegator;
 import java.io.*;
 import java.net.*;
-import java.util.Date;
 
 public class Scraper {
     ParserDelegator pd;
@@ -17,29 +16,28 @@ public class Scraper {
         this.inputURL = inputURL;
         this.sites = new SiteNodeModel();
         sites.addElement(new SiteNode(0, inputURL));
-        doScraping();
-        startTime = new Date().getTime();
+        startTime = System.currentTimeMillis();
         currentRuntime = 0;
+        doScraping();
     }
 
     public void doScraping(){
         while(!sites.allVisited() && currentRuntime < Attributes.MAX_RUNTIME){      //While all the sites havent been visited and the runtime isnt over max runTime
 
-            currentRuntime = new Date().getTime() - startTime;                      //Update current runtime in millis
-
-            myHandler = new Handler(sites, sites.getNextNode());
+            currentRuntime = System.currentTimeMillis() - startTime;                   //Update current runtime in millis
+            SiteNode currentNode = sites.getNextNode();
+            myHandler = new Handler(sites, currentNode);
             
             //Parses all the information on the page
             try{
-                is = new InputStreamReader(inputURL.openStream()); 
+                is = new InputStreamReader(currentNode.url.openStream()); 
                 pd = new ParserDelegator();
                 pd.parse(is, myHandler, true);                                      //Parse the site
-                System.out.println("Checked: " + sites.getNextNode().url + " and found " + sites.getNextNode().emails.size() + " emails.");
-                sites.getNextNode().visited = true;
+                currentNode.visited = true;
             } catch (IOException ioe){
-                System.out.println("Something went terribly wrong!");
+                currentNode.visited = true;
+                sites.removeElement(currentNode);
             }
-
         }
     }
 }

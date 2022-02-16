@@ -50,7 +50,11 @@ public class Window extends JFrame implements ActionListener {
             try{
                 lilScraper = new Scraper(new URL(urlField.getText()), 1);
                 for(int i = 0; i < lilScraper.sites.size(); i++){
-                    htmlTextContainer.addElement(lilScraper.sites.get(i).url.toString() + " DIST: " + lilScraper.sites.get(i).distance + " LINKS: " + lilScraper.sites.get(i).numLinks);
+                    htmlTextContainer.addElement("**************");
+                    htmlTextContainer.addElement(lilScraper.sites.get(i).url.toString());
+                    for(int j = 0; j < lilScraper.sites.get(i).emails.size(); j++){
+                        htmlTextContainer.addElement(lilScraper.sites.get(i).emails.get(j));
+                    }
                 }
             } catch(MalformedURLException mue){
                 System.out.println("Invalid URL!");

@@ -10,7 +10,7 @@ public class Handler extends HTMLEditorKit.ParserCallback {
     SiteNode origin;
 
     public Handler(SiteNodeModel sites, SiteNode origin){
-        System.out.println("--------------------------------------------------------------------------------------------------CURRENTLY VISITING: " + origin.url.toString());
+        System.out.println("------------------------------------------------------------------------------CURRENTLY VISITING: " + origin.url.toString());
         this.origin = origin;
         this.sites = sites;
     }
@@ -26,13 +26,11 @@ public class Handler extends HTMLEditorKit.ParserCallback {
                 String attributeText = a.getAttribute(HTML.Attribute.HREF).toString();  //Turn the attribute into a string
                 Matcher matcher = pattern.matcher(attributeText);
                 if(!attributeText.toLowerCase().startsWith("mailto:") && origin.distance < Attributes.MAX_RADIUS){                 //If the attribute doesn't have mailto, then its just a link
-                    System.out.println("FOUND A LINK ON " + origin.url.toString() + " : " + attributeText);
                     String finishedURL = "";
-
-                    if(attributeText.startsWith("http")){           //If the url found is NORMAL!!!!
-                        sites.addSite(attributeText, origin);
+                    if(attributeText.startsWith("http")){                                           //If the url found is NORMAL!!!!
+                            finishedURL = attributeText;
                     } else if(attributeText.startsWith("/")){                                       //If relative path starting with '/'
-                        if(origin.url.toString().charAt(origin.url.toString().length()-1) == '/'){ //If the origin ends in a '/'
+                        if(origin.url.toString().charAt(origin.url.toString().length()-1) == '/'){  //If the origin ends in a '/'
                             finishedURL = origin.url.toString().substring(0, origin.url.toString().length()-1) + attributeText;
                         } else {
                             finishedURL = origin.url.toString() + attributeText;
@@ -45,12 +43,12 @@ public class Handler extends HTMLEditorKit.ParserCallback {
                         }
                     }
                     sites.addSite(finishedURL, origin);
-
-                } else {                                                                //Else, it is another email
+                } else {                                                                            //Else, it is another email
                     boolean done = false;
                     while(!done){
                         if(matcher.find()){
-                            System.out.println("Found an email: " + attributeText.substring(matcher.start(), matcher.end()));
+                            String email = attributeText.substring(matcher.start(), matcher.end());
+                            origin.addEmail(email);
                             matcher.region(matcher.end(), attributeText.length());
                         } else {
                             done = true;
@@ -69,8 +67,7 @@ public class Handler extends HTMLEditorKit.ParserCallback {
         while(!done){
             if(matcher.find()){
                 String email = text.substring(matcher.start(), matcher.end());
-                System.out.println("Found an email: " + email);
-                origin.emails.addElement(email);
+                origin.addEmail(email);
                 matcher.region(matcher.end(), text.length());
             } else {
                 done = true;
