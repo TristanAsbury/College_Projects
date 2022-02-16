@@ -6,10 +6,8 @@ public class SiteNode {
     boolean visited;
     Vector<String> emails;
     URL url;
-    int numLinks;
 
     public SiteNode(int distance, URL url){
-        this.numLinks = 0;
         this.visited = false;
         this.distance = distance;
         this.url = url;
@@ -32,10 +30,10 @@ public class SiteNode {
                 System.out.println("Username: " + userName);
                 boolean foundSpot = false;
                 int index = 0;
-                while(!foundSpot && index < emails.size()){                                       //is the newly added greater than/equal to the compared?
+                while(!foundSpot && index < emails.size()){                                     //is the newly added greater than/equal to the compared?
                     compareEmail = emails.get(index);  
                     String compareDomain = compareEmail.substring(compareEmail.indexOf('@'), compareEmail.length());
-                    if(domain.compareTo(compareDomain) == 0){   //If the domains are the same, do another sort    
+                    if(domain.compareTo(compareDomain) == 0){                                   //If the domains are the same, do another sort    
                         while(!foundSpot && index < emails.size()){
                             compareEmail = emails.get(index); 
                             String compareUsername = compareEmail.substring(0, compareEmail.indexOf('@'));

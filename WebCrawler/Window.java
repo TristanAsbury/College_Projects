@@ -24,6 +24,7 @@ public class Window extends JFrame implements ActionListener {
         goButton = new JButton("Go");
         goButton.addActionListener(this);
         urlField = new JTextField(20);
+        urlField.setText(Params.SEED);
         inputPanel = new JPanel();
         inputPanel.add(goButton);
         inputPanel.add(urlField);
@@ -41,14 +42,14 @@ public class Window extends JFrame implements ActionListener {
         Dimension d = tk.getScreenSize();
         setSize((int)d.getWidth()/2, (int)d.getHeight()/2);
         setLocation((int)d.getWidth()/4, (int)d.getHeight()/4);
-        setTitle("HTML Fetcher");
+        setTitle("Web Crawler");
         setVisible(true);
     }
 
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == goButton){
             try{
-                lilScraper = new Scraper(new URL(urlField.getText()));
+                lilScraper = new Scraper(new URL(urlField.getText()));                          //
                 for(int i = 0; i < lilScraper.sites.size(); i++){
                     htmlTextContainer.addElement("**************");
                     htmlTextContainer.addElement(lilScraper.sites.get(i).url.toString());

@@ -80,6 +80,7 @@ public class Handler extends HTMLEditorKit.ParserCallback {
                 }
             }
         }
+
     }
 }
 
