@@ -1,7 +1,6 @@
 import javax.swing.text.html.parser.ParserDelegator;
 import java.io.*;
 import java.net.*;
-import java.util.Date;
 
 public class Scraper {
     ParserDelegator pd;
@@ -17,29 +16,27 @@ public class Scraper {
         this.inputURL = inputURL;
         this.sites = new SiteNodeModel();
         sites.addElement(new SiteNode(0, inputURL));
-        startTime = new Date().getTime();
+        startTime = System.currentTimeMillis();
         currentRuntime = 0;
         doScraping();
     }
 
     public void doScraping(){
         while(!sites.allVisited() && currentRuntime < Params.MAX_RUNTIME){      //While all the sites havent been visited and the runtime isnt over max runTime
-            currentRuntime = new Date().getTime() - startTime;                      //Update current runtime in millis
-            SiteNode currentSite = sites.getNextNode();
-            myHandler = new Handler(sites, currentSite);
+
+            currentRuntime = System.currentTimeMillis() - startTime;            //Update current runtime in millis
+            SiteNode currentNode = sites.getNextSite();                         //Get the next available node
+            myHandler = new Handler(sites, currentNode);                        //Create a new handler, passing the site list and the origin node
             
             //Parses all the information on the page
             try{
-                is = new InputStreamReader(currentSite.url.openStream()); 
-                pd = new ParserDelegator();
+                is = new InputStreamReader(currentNode.url.openStream());       //Create the input stream
+                pd = new ParserDelegator();                                     //Create a new delegator
                 pd.parse(is, myHandler, true);                                  //Parse the site
-                System.out.println("Checked: " + sites.getNextNode().url + " and found " + sites.getNextNode().emails.size() + " emails.");
-                currentSite.visited = true;
             } catch (IOException ioe){
-                System.out.println("Something went terribly wrong!");
-                currentSite.visited = true;
-                sites.removeElement(currentSite);
+                sites.removeElement(currentNode);                               //Don't display the site on the list if there was an error
             }
+            currentNode.visited = true;                                         //Set the current node as visited, even if it had an IOException
         }
     }
 }
