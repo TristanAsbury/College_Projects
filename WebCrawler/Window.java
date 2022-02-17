@@ -49,7 +49,7 @@ public class Window extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == goButton){
             try{
-                lilScraper = new Scraper(new URL(urlField.getText()));                          //
+                lilScraper = new Scraper(new URL(urlField.getText()));                          
                 for(int i = 0; i < lilScraper.sites.size(); i++){
                     htmlTextContainer.addElement("**************");
                     htmlTextContainer.addElement(lilScraper.sites.get(i).url.toString());

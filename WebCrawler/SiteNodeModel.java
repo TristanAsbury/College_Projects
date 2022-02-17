@@ -21,16 +21,16 @@ public class SiteNodeModel extends DefaultListModel<SiteNode> {
                 if(this.size() > 0){
                     boolean foundSpot = false;
                     int index = 0;
-                    while(!foundSpot && index < this.size()){                                       //is the newly added greater than/equal to the compared?                                     
-                        if(url.toLowerCase().compareTo(this.get(index).url.toString()) >= 0){       
-                            index++;    
+                    while(!foundSpot && index < this.size()){                                                                           
+                        if(url.toLowerCase().compareTo(this.get(index).url.toString()) >= 0){       //is the newly added greater than/equal to the compared? 
+                            index++;                                                                //Go to the next position to compare
                         } else {
                             this.add(index, new SiteNode(origin.distance+1, addedURL));             //If not, then add where it is
-                            foundSpot = true;
+                            foundSpot = true;                                                       //We found a spot
                         }
                     }
-                    if(foundSpot == false){
-                        this.addElement(new SiteNode(origin.distance+1, addedURL));
+                    if(foundSpot == false){                                                         //If we havent found a spot
+                        this.addElement(new SiteNode(origin.distance+1, addedURL));                 //Add the site to the end
                     }
                     //Go through all of the sites
                 } else {
@@ -47,7 +47,6 @@ public class SiteNodeModel extends DefaultListModel<SiteNode> {
     public boolean isDuplicate(URL url){
         for(int i = 0; i < this.size(); i++){
             if(this.get(i).url.toString().equals(url.toString())){    //If the link is found in the list
-                System.out.println("FOUND SITE IN LIST!");
                 return true;
             }
         }

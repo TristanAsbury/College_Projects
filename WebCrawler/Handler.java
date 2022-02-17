@@ -1,7 +1,5 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.naming.ldap.StartTlsRequest;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLEditorKit;
