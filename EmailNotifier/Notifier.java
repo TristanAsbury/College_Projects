@@ -2,10 +2,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+// import mail.com.sun.mail.imap.*;
+// import mail.com.sun.mail.*;
 
 public class Notifier implements ActionListener {
     SystemTray tray;
@@ -23,7 +24,7 @@ public class Notifier implements ActionListener {
 
             MenuItem simpleThing = new MenuItem("Hello!");  //Add the menu items
             trayPopup.add(simpleThing);                     //Add the menu items to the popup
-
+            
             setupProps();
             setupTray();                                    //Setup the tray
 
@@ -33,12 +34,11 @@ public class Notifier implements ActionListener {
     }
 
     private void setupProps(){
+        props = new Properties();
         try {
-            props.load(new FileInputStream("props"));
+            props.load(new FileInputStream("props.properties")); //If there is already a properties
         } catch (IOException e){
-            
-            props = new Properties();
-            props.setProperty("username", "bob");
+            PropertiesDialog propsDlg = new PropertiesDialog(props);
         }
     }
 
@@ -68,7 +68,7 @@ public class Notifier implements ActionListener {
         }
     }
 
-    private void exit(){
+    // private void exit(){
 
-    }
+    // }
 }
