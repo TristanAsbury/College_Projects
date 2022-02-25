@@ -1,3 +1,9 @@
+import javax.mail.Authenticator;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.NoSuchProviderException;
+import javax.mail.Session;
+import javax.mail.Store;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -5,13 +11,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-// import mail.com.sun.mail.imap.*;
-// import mail.com.sun.mail.*;
 
 public class Notifier implements ActionListener {
     SystemTray tray;
     PopupMenu trayPopup;
     Timer timer;
+
+    Session session;
+    Authenticator auth;
+    Store store;
+    Folder inboxFolder;
+    Message[] messages;
+
     int intervalMinutes;
     Properties props;
 
@@ -40,6 +51,10 @@ public class Notifier implements ActionListener {
         } catch (IOException e){
             PropertiesDialog propsDlg = new PropertiesDialog(props);
         }
+
+
+        session = Session.getInstance(props, auth);
+        
     }
 
     private void setupTray(){
@@ -64,7 +79,8 @@ public class Notifier implements ActionListener {
 
     public void actionPerformed(ActionEvent e) {
         if(e.getActionCommand().equals("CHECK")){
-            System.out.println("Hello!");
+            //This is where the folder will be checked
+
         }
     }
 
