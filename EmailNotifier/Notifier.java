@@ -1,6 +1,7 @@
 import javax.mail.Authenticator;
 import javax.mail.Folder;
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.NoSuchProviderException;
 import javax.mail.Session;
 import javax.mail.Store;
@@ -10,7 +11,6 @@ import java.awt.event.*;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-
 
 public class Notifier implements ActionListener {
     SystemTray tray;
@@ -51,10 +51,25 @@ public class Notifier implements ActionListener {
         } catch (IOException e){
             PropertiesDialog propsDlg = new PropertiesDialog(props);
         }
-
-
-        session = Session.getInstance(props, auth);
         
+        try {
+            auth = null;
+            session = Session.getInstance(props, auth);
+            store = session.getStore("imap");
+            store.connect("imap.gmx.com", "tasbury07@gmx.com", "tasbury07");
+
+            System.out.println("Number of folders: " + store.getPersonalNamespaces().length);
+
+            inboxFolder.close(false);
+            store.close();
+
+        } catch ( NoSuchProviderException np ){
+            System.out.println("No such provider: " + props.getProperty("protocolProvider"));
+            
+        } catch (MessagingException me ) {
+            System.out.println("Messaging Excpetion!");
+            me.printStackTrace();
+        }
     }
 
     private void setupTray(){
@@ -70,8 +85,7 @@ public class Notifier implements ActionListener {
             return;     //If the setup fails, return to the constructor, and pretty much end the program.
         }
         System.out.println("We made da tray icon!");
-
-        timer = new Timer(1000, this);
+        timer = new Timer(Integer.parseInt(props.getProperty("interval")) * 60000, this);
         timer.setRepeats(true);
         timer.setActionCommand("CHECK");
         timer.start();      
@@ -80,7 +94,7 @@ public class Notifier implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if(e.getActionCommand().equals("CHECK")){
             //This is where the folder will be checked
-
+            
         }
     }
 

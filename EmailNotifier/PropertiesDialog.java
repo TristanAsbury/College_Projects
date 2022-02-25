@@ -38,10 +38,12 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         intervalLabel = new JLabel("Time (minutes)");
         soundLabel = new JLabel("Notification Sound:");
 
-        serverNameInput = new JTextField(20);
-        usernameInput = new JTextField(20);
-        passwordInput = new JPasswordField(20);
-        intervalInput = new JSpinner();
+        serverNameInput = new JTextField("imap.gmx.com");
+        usernameInput = new JTextField("tasbury07@gmx.com");
+        passwordInput = new JPasswordField("tasbury07");
+        SpinnerModel intervalModel = new SpinnerNumberModel(1, 1, 60, 1);
+        intervalInput = new JSpinner(intervalModel);
+        
         soundInput = new JCheckBox();
 
         
@@ -101,7 +103,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             props.put("host", serverNameInput.getText());
             props.put("username", usernameInput.getText());
             props.put("password", passwordInput.getText());
-            props.put("protocolProvider", "imaps");
+            props.put("protocolProvider", "imap");
             props.put("interval", intervalInput.getValue().toString());
             props.put("notisound", String.valueOf(soundInput.isSelected()));
             try {
