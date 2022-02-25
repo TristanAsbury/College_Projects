@@ -5,6 +5,8 @@
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
         "EmailNotifier\\activation-1.1.1.jar",
-        "EmailNotifier\\mail.jar"
+        "EmailNotifier\\mail.jar",
+        "EmailNotifier/activation-1.1.1.jar",
+        "EmailNotifier/mail.jar"
     ]
 }

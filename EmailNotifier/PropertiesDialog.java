@@ -117,8 +117,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
     }
 
     private void setUp(){
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
         setSize((int)d.getWidth()/5, (int)d.getHeight()/5);
