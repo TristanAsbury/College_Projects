@@ -78,7 +78,6 @@ public class Notifier implements ActionListener {
 
             inboxFolder = store.getFolder("INBOX");
             inboxFolder.open(Folder.READ_WRITE);
-
         } catch ( NoSuchProviderException np){
             System.out.println("No such provider: " + props.getProperty("protocolProvider"));
             
@@ -128,13 +127,16 @@ public class Notifier implements ActionListener {
     private void checkFolder(Folder mailFolder){
         Boolean checked = Boolean.valueOf(false);
         try {
-            if(mailFolder.hasNewMessages()){    //IF THERE IS A NEW MESSAGE
-                newMailCount = mailFolder.getNewMessageCount();
-                if(newMailDialog == null){  //If there is no dialog present, create it 
-                    newMailDialog = new MessageDialog(checked, mailFolder, mailFolder.getNewMessageCount());
-                } else if(!(mailFolder.getNewMessageCount() == newMailCount)){    //Else, if there is a dialog, delete it, and create a new one
-                    newMailDialog.dispose();    //Dispose of the dialog
-                    newMailDialog = new MessageDialog(checked, mailFolder, mailFolder.getNewMessageCount());    //Create a new one
+            if(mailFolder.hasNewMessages()){        //If there is a new message
+                if(newMailDialog == null){          //If there is no dialog present, create it 
+                    newMailDialog = new MessageDialog(mailFolder);
+                    newMailCount = mailFolder.getNewMessageCount();
+                    new PlaySound("uh_oh.wav").start();
+                } else if(!(newMailCount == mailFolder.getNewMessageCount())){              //If there is a dialog present and the new mail count is different
+                    newMailDialog.dispose();                                                //Dispose of the dialog
+                    newMailDialog = new MessageDialog(mailFolder);                          //Create a new one with the updated count
+                    newMailCount = mailFolder.getNewMessageCount();
+                    new PlaySound("uh_oh.wav").start();
                 }
             } else {
                 System.out.println("No new messages since last check.");

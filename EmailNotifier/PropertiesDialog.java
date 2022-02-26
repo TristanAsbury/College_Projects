@@ -111,13 +111,13 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             } catch(IOException io){
                 System.out.println("Error saving props file!");
             }
-            
             dispose();
         }
     }
 
     private void setUp(){
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setModalityType(ModalityType.APPLICATION_MODAL);
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
         setSize((int)d.getWidth()/5, (int)d.getHeight()/5);
