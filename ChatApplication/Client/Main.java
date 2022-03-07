@@ -18,7 +18,9 @@ class Main {
         InputDialog myDialog = new InputDialog(talker);
 
         while(true){
-            System.out.println(talker.receive());
+            if(talker.id != "pending"){
+                System.out.println(talker.receive());
+            }            
         }
     }
 }

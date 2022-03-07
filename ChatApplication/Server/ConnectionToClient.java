@@ -15,10 +15,12 @@ public class ConnectionToClient implements Runnable {
 
     public void run() {
         while(keepRunning){
-            String msg = talker.receive();
-            for(ConnectionToClient ctc : ctcs){
-                if(this != ctc){
-                    ctc.send(msg);
+            if(talker.id != "pending"){ //If the client is still connected
+                String msg = talker.receive();
+                for(ConnectionToClient ctc : ctcs){
+                    if(this != ctc){
+                        ctc.send(msg);
+                    }
                 }
             }
         }

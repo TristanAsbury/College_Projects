@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.net.Socket;
 
@@ -18,11 +17,11 @@ public class Talker {
 
     public String receive(){
         String returnString = null;
-
         try {
             returnString = inputStream.readLine();
         } catch (IOException io) {
             System.out.println("Error reading message from client connection!");
+            id = "pending";
         }
 
         return returnString;
@@ -34,5 +33,6 @@ public class Talker {
         } catch (IOException io){
             System.out.println("Error sending message from client!");
         }
+        
     }
 }   

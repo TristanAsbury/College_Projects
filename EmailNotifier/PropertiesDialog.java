@@ -2,12 +2,8 @@ import javax.swing.*;
 import javax.swing.GroupLayout.Alignment;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Properties;
-
 
 public class PropertiesDialog extends JDialog implements ActionListener {
     GroupLayout inputLayout;
@@ -15,7 +11,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
     JPanel inputPanel;
     JPanel buttonPanel;
 
-    JButton saveButton;
+    JButton saveButton, cancelButton;
 
     JLabel serverNameLabel, usernameLabel, passwordLabel, intervalLabel, soundLabel;
     JTextField serverNameInput, usernameInput;
@@ -38,22 +34,26 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         intervalLabel = new JLabel("Time (minutes)");
         soundLabel = new JLabel("Notification Sound:");
 
-        serverNameInput = new JTextField("imap.gmx.com");
-        usernameInput = new JTextField("tasbury07@gmx.com");
-        passwordInput = new JPasswordField("tasbury07");
+        serverNameInput = new JTextField("");
+        usernameInput = new JTextField("");
+        passwordInput = new JPasswordField("");
         SpinnerModel intervalModel = new SpinnerNumberModel(1, 1, 60, 1);
         intervalInput = new JSpinner(intervalModel);
         
         soundInput = new JCheckBox();
 
         
-        saveButton = new JButton("Submit And Continue");
+        saveButton = new JButton("Save");
         saveButton.addActionListener(this);
         
+        cancelButton = new JButton("Cancel");
+        cancelButton.addActionListener(this);
+
         inputPanel = new JPanel();
         buttonPanel = new JPanel();
         
         buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
 
         inputLayout = new GroupLayout(inputPanel);
         inputPanel.setLayout(inputLayout);
@@ -106,6 +106,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             props.put("protocolProvider", "imap");
             props.put("interval", intervalInput.getValue().toString());
             props.put("notisound", String.valueOf(soundInput.isSelected()));
+            //Save settings
             try {
                 props.store(new DataOutputStream(new FileOutputStream("props.properties")), null);
             } catch(IOException io){
@@ -113,10 +114,14 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             }
             dispose();
         }
+
+        if(e.getSource().equals(cancelButton)){
+            dispose();
+        }
     }
 
     private void setUp(){
-        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setModalityType(ModalityType.APPLICATION_MODAL);
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();

@@ -17,13 +17,12 @@ public class Talker {
 
     public String receive(){
         String returnString = null;
-
         try {
             returnString = inputStream.readLine();
         } catch (IOException io) {
             System.out.println("Error reading message from client connection!");
+            id = "pending";
         }
-
         return returnString;
     }
 

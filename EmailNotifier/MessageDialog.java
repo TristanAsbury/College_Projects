@@ -1,9 +1,6 @@
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
+import javax.mail.*;
 import javax.swing.*;
 import javax.swing.GroupLayout.Alignment;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
@@ -29,6 +26,7 @@ public class MessageDialog extends JDialog implements ActionListener {
         setUp();
     }
     
+    //UI Stuff, nothing special
     private void createGUI(){
         try {
             Message recentMessage = mailFolder.getMessage(mailFolder.getMessageCount());
@@ -74,27 +72,24 @@ public class MessageDialog extends JDialog implements ActionListener {
         } catch (MessagingException me){
             System.out.println("Problem reading mail!");
         } catch (IOException io){
-            System.out.println("IO Boi");
+            System.out.println("Problem accessing mail");
         }
-
-        
-
     }
     
     public void actionPerformed(ActionEvent e){
         if(e.getSource().equals(okayButton)){
             try {
-                mailFolder.close(false); //Close the folder to show that we have read all new messages
+                mailFolder.close(false);            //Close the folder to show that we have read all new messages
                 mailFolder.open(Folder.READ_WRITE); //Open the folder again to reset
             } catch (MessagingException me){
                 System.out.println("Problem closing folder!");
             }
-            dispose();      //Close the window
+            dispose();                              //Close the window
         }
     }
 
     private void setUp(){
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);  //This is kinda cheap, but having the only way to close the popup being the okay button allows the mailfolder to close
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
         setSize((int)d.getWidth()/5, (int)d.getHeight()/5);

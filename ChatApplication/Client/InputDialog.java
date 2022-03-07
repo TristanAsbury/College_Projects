@@ -1,8 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Properties;
-import java.util.Random;
 
 
 public class InputDialog extends JDialog implements ActionListener {
@@ -10,8 +8,6 @@ public class InputDialog extends JDialog implements ActionListener {
 
     JPanel inputPanel;
     JScrollPane messagesPane;
-
-    
 
     JList textList;
 
@@ -29,7 +25,7 @@ public class InputDialog extends JDialog implements ActionListener {
     private void createGUI(){
         messagesPane = new JScrollPane(textList);
 
-        messageInput = new JTextField("Test");
+        messageInput = new JTextField(20);
         sendButton = new JButton("Send Message");
         sendButton.addActionListener(this);
         
