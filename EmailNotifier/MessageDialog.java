@@ -19,9 +19,11 @@ public class MessageDialog extends JDialog implements ActionListener {
     JLabel fromLabel;
     JLabel subjectLabel;
     JLabel messageLabel;
+    int newMessages;
 
-    public MessageDialog(Folder mailFolder){ //For adding
+    public MessageDialog(Folder mailFolder, int newMessages){ //For adding
         this.mailFolder = mailFolder;
+        this.newMessages = newMessages;
         createGUI();
         setUp();
     }
@@ -30,7 +32,7 @@ public class MessageDialog extends JDialog implements ActionListener {
     private void createGUI(){
         try {
             Message recentMessage = mailFolder.getMessage(mailFolder.getMessageCount());
-            newMessagesLabel = new JLabel("NEW MESSAGES: " + mailFolder.getNewMessageCount());
+            newMessagesLabel = new JLabel("NEW MESSAGES: " + newMessages);
             fromLabel = new JLabel("From: " + recentMessage.getFrom()[0].toString());
             subjectLabel = new JLabel("Subject: " + recentMessage.getSubject());
             messageLabel = new JLabel("Message: " + recentMessage.getContent().toString());
@@ -78,12 +80,6 @@ public class MessageDialog extends JDialog implements ActionListener {
     
     public void actionPerformed(ActionEvent e){
         if(e.getSource().equals(okayButton)){
-            try {
-                mailFolder.close(false);            //Close the folder to show that we have read all new messages
-                mailFolder.open(Folder.READ_WRITE); //Open the folder again to reset
-            } catch (MessagingException me){
-                System.out.println("Problem closing folder!");
-            }
             dispose();                              //Close the window
         }
     }

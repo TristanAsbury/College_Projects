@@ -17,7 +17,7 @@ public class Notifier implements ActionListener {
     Message[] messages;     //Messages array
     MessageDialog newMailDialog;
 
-    int newMailCount;
+    int newMessageCount;
     boolean playSound;
 
     SystemTray tray;
@@ -28,7 +28,7 @@ public class Notifier implements ActionListener {
     Properties props;
 
     public Notifier(){
-        newMailCount = 0;
+        newMessageCount = 0;
         System.out.println("Creating tray!");
         if(SystemTray.isSupported()){               //If there is a system tray that is supported.
             tray = SystemTray.getSystemTray();      //Then we will make a pointer to that tray
@@ -104,6 +104,7 @@ public class Notifier implements ActionListener {
             store = session.getStore("imaps");
             store.connect(props.getProperty("host"), props.getProperty("username"), props.getProperty("password"));
             inboxFolder = store.getFolder("INBOX");
+            inboxFolder.open(Folder.READ_WRITE);    //Open folder and see how many new messages
         } catch (NoSuchProviderException nsp){  //If there was a problem with the settings, open them back up again
             openSettingsDialog();
         } catch (MessagingException me){        //If there was a problem with the settings, open them back up again
@@ -117,7 +118,9 @@ public class Notifier implements ActionListener {
             if(inboxFolder.isOpen()){
                 inboxFolder.close(false);
             }
-            store.close();
+            if(store.isConnected()){
+                store.close();
+            }
         } catch (MessagingException me) {
             System.out.println("Error closing mail folder!");
         }
@@ -157,7 +160,9 @@ public class Notifier implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if(e.getActionCommand().equals("CHECK")){
             System.out.println("Checking mail!");
+            openConnection();
             checkFolder(inboxFolder);
+            closeConnection();
         }
 
         if(e.getSource().equals(exitItem)){
@@ -185,22 +190,26 @@ public class Notifier implements ActionListener {
     }
 
     private void checkFolder(Folder mailFolder){
+        //Open connection
+        
+        //Get new messages
         try {
-            if(mailFolder.hasNewMessages()){        //If there is a new message
-                if(newMailDialog == null){          //If there is no dialog present, create it 
-                    newMailDialog = new MessageDialog(mailFolder);
-                    newMailCount = mailFolder.getNewMessageCount();
-                } else if(!(newMailCount == mailFolder.getNewMessageCount())){              //If there is a dialog present and the new mail count is different
-                    newMailDialog.dispose();                                                //Dispose of the dialog
-                    newMailDialog = new MessageDialog(mailFolder);                          //Create a new one with the updated count
-                    newMailCount = mailFolder.getNewMessageCount();
+            if(mailFolder.hasNewMessages()){    //If there is a new message
+                if(newMailDialog != null){      //If there is a message dialog up
+                    newMessageCount++;
+                    newMailDialog.dispose();
+                    newMailDialog = null;
+                    newMailDialog = new MessageDialog(mailFolder, newMessageCount);
+                } else {
+                    newMessageCount = mailFolder.getNewMessageCount();
+                    newMailDialog = new MessageDialog(mailFolder, newMessageCount);
                 }
-                //If sound is enabled then play the sound
+
                 if(playSound){
                     new PlaySound("uh_oh.wav").start();
                 }
             } else {
-                System.out.println("No new messages since last check.");
+                System.out.println("No new messages");
             }
         } catch (MessagingException me){
             System.out.println("Error accessing new mail!");
