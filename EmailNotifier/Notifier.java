@@ -56,12 +56,16 @@ public class Notifier implements ActionListener {
     }
 
     private void setupProps(){
+        //Create new properties object
         props = new Properties();
-        boolean isGood = true;
+
+        //Try to find properties file
         try {
             props.load(new FileInputStream("props.properties")); //If there is already a properties
+            System.out.println("Loading properties file!");
         } catch (IOException e){
             PropertiesDialog propsDlg = new PropertiesDialog(props);
+            System.out.println("Failed loading props file!");
         }
         
         if(props.getProperty("notisound") == "true"){       //Update the notification sound value
@@ -69,21 +73,22 @@ public class Notifier implements ActionListener {
         } else {
             toggleSoundItem.setLabel("Sound off");
         }
-
-        try {                                       //Try connecting to the mail server
+        
+        //Try connecting to the mail server with properties
+        try {                                       
             auth = null;
             session = Session.getInstance(props, auth);
             store = session.getStore("imaps");
             store.connect(props.getProperty("host"), props.getProperty("username"), props.getProperty("password"));
             inboxFolder = store.getFolder("INBOX");
+
             inboxFolder.open(Folder.READ_WRITE);    //Open folder and see how many new messages
             if(inboxFolder.getNewMessageCount() > 0){
                 JOptionPane.showMessageDialog(null, "You gained " + inboxFolder.getNewMessageCount() + " new messages since you last checked your mail!");  //Display if we have new messages
             }
             inboxFolder.close(false);
             inboxFolder.open(Folder.READ_WRITE);    //Start regular loop
-
-        } catch ( NoSuchProviderException np){      
+        } catch (NoSuchProviderException np){      
             System.out.println("No such provider: " + props.getProperty("protocolProvider"));
             PropertiesDialog propertiesDialog = new PropertiesDialog(props);
             setupProps();
@@ -190,29 +195,39 @@ public class Notifier implements ActionListener {
     }
 
     private void checkFolder(Folder mailFolder){
-        //Open connection
-        
         //Get new messages
         try {
             if(mailFolder.hasNewMessages()){    //If there is a new message
-                if(newMailDialog != null){      //If there is a message dialog up
-                    newMessageCount++;
-                    newMailDialog.dispose();
-                    newMailDialog = null;
-                    newMailDialog = new MessageDialog(mailFolder, newMessageCount);
-                } else {
+                if(newMailDialog == null){
                     newMessageCount = mailFolder.getNewMessageCount();
                     newMailDialog = new MessageDialog(mailFolder, newMessageCount);
+                } else {              //If there is a dialog present and the new mail count is different
+                    if(newMailDialog.isAlive){
+                        newMailDialog.dispose();                                                //Dispose of the dialog
+                        newMessageCount += mailFolder.getNewMessageCount();
+                        newMailDialog = new MessageDialog(mailFolder, newMessageCount);                          //Create a new one with the updated count
+                    } else {
+                        newMailDialog.dispose();                                                //Dispose of the dialog
+                        newMessageCount = mailFolder.getNewMessageCount();
+                        newMailDialog = new MessageDialog(mailFolder, newMessageCount);
+                    }
                 }
 
                 if(playSound){
                     new PlaySound("uh_oh.wav").start();
                 }
+
+                inboxFolder.close(false);
+                store.close();
+
             } else {
                 System.out.println("No new messages");
             }
         } catch (MessagingException me){
             System.out.println("Error accessing new mail!");
         }
+
+        
     }
+    
 }

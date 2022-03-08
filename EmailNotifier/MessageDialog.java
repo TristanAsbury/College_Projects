@@ -21,7 +21,10 @@ public class MessageDialog extends JDialog implements ActionListener {
     JLabel messageLabel;
     int newMessages;
 
+    boolean isAlive;
+
     public MessageDialog(Folder mailFolder, int newMessages){ //For adding
+        isAlive = true;
         this.mailFolder = mailFolder;
         this.newMessages = newMessages;
         createGUI();
@@ -81,6 +84,7 @@ public class MessageDialog extends JDialog implements ActionListener {
     public void actionPerformed(ActionEvent e){
         if(e.getSource().equals(okayButton)){
             dispose();                              //Close the window
+            isAlive = false;
         }
     }
 

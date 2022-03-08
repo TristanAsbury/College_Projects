@@ -19,6 +19,8 @@ public class PropertiesDialog extends JDialog implements ActionListener {
     JSpinner intervalInput;
     JCheckBox soundInput;
 
+    
+
     Properties props;
 
     public PropertiesDialog(Properties props){ //For adding
