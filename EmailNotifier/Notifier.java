@@ -62,9 +62,9 @@ public class Notifier implements ActionListener {
         //Try to find properties file
         try {
             props.load(new FileInputStream("props.properties")); //If there is already a properties
-            System.out.println("Loading properties file!");
+
         } catch (IOException e){
-            PropertiesDialog propsDlg = new PropertiesDialog(props);
+            PropertiesDialog propertiesDialog = new PropertiesDialog(props);
             System.out.println("Failed loading props file!");
         }
         
@@ -136,7 +136,7 @@ public class Notifier implements ActionListener {
         //This is needed for the first check
         timer.stop();       //Stops the timer that may be currently running
         closeConnection();  //Close the connection
-        PropertiesDialog tempProperties = new PropertiesDialog(props);  //Open settings dialog so user can edit the properties
+        PropertiesDialog propertiesDialog = new PropertiesDialog(props);  //Open settings dialog so user can edit the properties
         playSound = Boolean.valueOf(props.getProperty("notisound"));
         updateNotiSoundItem();
         openConnection();                                               //Attempt to open the connection after the user closed the dialog
@@ -155,7 +155,8 @@ public class Notifier implements ActionListener {
             System.out.println("Failed to add icon!");
             return;     //If the setup fails, return to the constructor, and pretty much end the program.
         }
-        timer = new Timer(Integer.parseInt(props.getProperty("interval")) * 10000, this);
+        
+        timer = new Timer(Integer.parseInt(props.getProperty("interval")) * 60000, this);
         timer.setActionCommand("CHECK");
         timer.setRepeats(true);
         timer.start();
