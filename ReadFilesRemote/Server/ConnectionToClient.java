@@ -2,10 +2,8 @@ package Server;
 import java.net.Socket;
 
 public class ConnectionToClient implements Runnable {
-    
-
     ServerTalker talker;
-
+    
     public ConnectionToClient(Socket socket){
         talker = new ServerTalker(socket);
         new Thread(this).start();

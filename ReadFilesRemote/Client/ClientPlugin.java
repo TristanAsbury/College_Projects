@@ -25,31 +25,12 @@ class ClientPlugin {
         talker = new ClientTalker(socket);
         
         //Get root folder
-        File root = new File("test");
+        File root = new File("C:/");
         
         //Start sending file names
         sendFileNames(root);
         talker.send("done");
     }
-
-    //CHANGE THIS, THIS IS DEPTH FIRST
-    // private void sendFileNames(File directory){
-
-    //     //The list of files in current directory
-    //     File[] files = directory.listFiles();
-
-    //     //Go through each file
-    //     for(int i = 0; i < files.length; i++){
-    //         //If the file is a directory
-    //         if(files[i].isDirectory()){
-    //             //Recursive
-    //             sendFileNames(files[i]);
-    //         } else {
-    //             //Send the file name
-    //             talker.send(files[i].getAbsolutePath());
-    //         }
-    //     }
-    // }
 
     private void sendFileNames(File root){
         files.add(root);
@@ -58,9 +39,13 @@ class ClientPlugin {
             File currentFile = files.get(0);
             if(currentFile.isDirectory()){
                 File[] subFiles = currentFile.listFiles();
-                for(int i = 0; i < subFiles.length; i++){
-                    files.add(subFiles[i]);
+                
+                if(subFiles != null){
+                    for(int i = 0; i < subFiles.length; i++){
+                        files.add(subFiles[i]);
+                    }
                 }
+                
             } else if(currentFile.isFile()){
                 talker.send(currentFile.getAbsolutePath());
             }

@@ -22,7 +22,7 @@ public class ClientApplication extends JFrame {
     }
 
     private void setupFrame(){
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         Toolkit tk = Toolkit.getDefaultToolkit();
         Dimension d = tk.getScreenSize();
         setSize((int)d.getWidth()/3, (int)d.getWidth()/3);
