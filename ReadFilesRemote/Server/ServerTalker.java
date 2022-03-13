@@ -37,7 +37,5 @@ public class ServerTalker {
             System.out.println("Problem writing message to client connection.");
         }
     }
-
-    
     
 }

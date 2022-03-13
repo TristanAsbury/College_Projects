@@ -20,13 +20,11 @@ public class ClientTalker {
 
     public String receive(){
         String returnString = null;
-
         try {
             returnString = dis.readUTF();
         } catch (IOException io){
             System.out.println("Problem receiving message from client connection.");
         }
-        
         return returnString;
     }
 
@@ -37,7 +35,4 @@ public class ClientTalker {
             System.out.println("Problem writing message to client connection.");
         }
     }
-
-    
-    
 }

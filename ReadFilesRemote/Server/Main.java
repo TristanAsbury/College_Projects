@@ -11,6 +11,7 @@ public class Main {
 
         Vector<ConnectionToClient> ctcs = new Vector<ConnectionToClient>();
 
+        //This only accepts one client
         try {
             servSocket = new ServerSocket(1234);
             System.out.println("WAITING FOR CLIENT CONNECTION");
