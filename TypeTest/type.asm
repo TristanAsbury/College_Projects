@@ -17,17 +17,16 @@ myData SEGMENT
     fifth DB "the void will consume us all.", 0
     sixth DB "this is saddening", 0
     seventh DB "all my friends are turning into procedures", 0
-    eight DB "this is wacky", 0
-    nine DB "sad sad sad", 0
-    ten DB "weeeee", 0
+    eighth DB "this is wacky", 0
+    ninth DB "sad sad sad", 0
+    tenth DB "weeeee", 0
 
     cursorPos DW 0
     correctFlag DB 0        ; keeps track if the sentence is correct
     insertFlag DB 0
-    
-    typedLength DW 0        ; how many chars the user typed
-    sentenceLength DB 0     ; the num of chars in the original sentence
 
+    typedLength DW 0        ; how many chars the user typed
+    sentenceLength DW 0     ; the num of chars in the original sentence
     randomSentence DW 0
 
 myData ENDS
@@ -38,7 +37,6 @@ assume ds: myData, cs: myCode
 
 ;==========MAIN PROC======================
 main PROC
-    mov correctFlag, byte ptr 1
 	mov ax, myData      ; Make DS point to data segment
 	mov ds, ax
 
@@ -49,6 +47,7 @@ main PROC
 
 topCheck:
     ; MAIN LOOP, LOOK FOR KEY INPUT
+    call getTimeLapseTenths ; this will store the timelapse tenths in bx
     mov ah, 11h
     int 16h
     jz topCheck ; if the user didn't type anything, dont handle any key
@@ -58,54 +57,114 @@ topCheck:
     je exit
     call processKey
     call colorSentence
+    
     jmp topCheck
 
 exit:
     mov AH, 4Ch     ; These two instructions use a DOS interrupt
     int 21h
-
 main ENDP
 ;=========================================
 
 ;=========================================
-colorSentence PROC
-    push ax bx cx si di
-    mov di, 160*20  ;regular sentence
-    mov si, 160*21  ;typed sentence
-    mov cx, sentenceLength
+getTimeLapseTenths PROC
+    push ax bx cx dx
 
-topColor:
-    cmp cx, 0
-    je exitColor
-    cmp correctFlag, 1  ; if the users typing is correct
-    jne colorIncorrect  ; if the flag is false, don't compare and just color the next characters wrong
-    mov bx, es:[di]     ; else, make bx the reg char
-    mov ax, es:[si]     ;       make ax the typed char
-    cmp al, bl          ; compare the characters (low)
-    jne colorIncorrect  ; if they arent equal, then make incorrect
-    jmp colorCorrect    ; if they are, color correct
+    mov ah, 00h
+    int 1ah
 
-colorCorrect:   
-    mov ax, es:[si]     ; move into ax the typed char
-    mov ah, 00001110b   ;make it green if its correct
-    add si, 2
-    add di, 2      
-    dec cx
-    jmp topColor
+    mov si, 160*5+80
 
-colorIncorrect:
-    mov correctFlag, 0
-    mov ax, es:[si]
-    mov ah, 00001100b   ;make it red if its incorrect
-    add si, 2
-    add di, 2
-    dec cx
-    jmp topColor
+    ; cx:dx = number of timer ticks since midnight
+    mov ax, dx  ; dx contains low order of ticks
+    mov ah, 0
 
-exitColor:
-    pop di si cx bx ax
+    mov bl, 10
+    div bl
+
+    add al, 30h
+
+    mov es:[si], al
+
+exitShowTime:
+    pop dx cx bx ax
     ret
+getTimeLapseTenths ENDP
+;=========================================
+
+;=========================================
+sentencesMatch PROC
+    ; ON ENTER: 3 things on stack
+    ; char* requiredSentence (pointer to the required sentence) (WORD)
+    ; char* userTypedSentence (pointer to screen memory) (BYTE)
+    ; int numCharsTyped         (typedLength)   (WORD)
+    
+    push bp     ; keep old bp
+    mov bp, sp  ; bp is now pointing to itself
+
+    mov si, word ptr 5*160
+    mov es:[si], byte ptr 'e'
+
+    pop bp
+    ret
+sentencesMatch ENDP
+;=========================================
+
+;=========================================
+colorSentence PROC
+
+    push typedLength    ; number of chars user typed (2)
+    push word ptr 21*160; address of ES where user typed sentence (2)
+    push randomSentence ; offset in DS of original sentence (2)
+    call sentencesMatch
+    add sp, 6           ; 'clean' the stack
+
+
 colorSentence ENDP
+;=========================================
+
+
+;=========================================
+; colorSentence PROC
+;     push ax bx cx si di
+;     mov correctFlag, byte ptr 1
+;     mov di, 160*20  ;regular sentence
+;     mov si, 160*21  ;typed sentence
+;     mov cx, sentenceLength
+
+; topColor:
+;     cmp cx, 0           ; are we at the last character to compare?
+;     je exitColor        ; if so, exit
+;     cmp correctFlag, 1  ; if the users typing is correct
+;     jne colorIncorrect  ; if the flag is false, don't compare and just color the next characters wrong
+;     mov bx, es:[di]     ; else, make bx the reg char
+;     mov ax, es:[si]     ;       make ax the typed char
+;     cmp al, bl          ; compare the characters (low)
+;     jne colorIncorrect  ; if they arent equal, then make incorrect
+;     jmp colorCorrect    ; if they are, color correct
+
+; colorCorrect:
+;     mov ah, 00001010b   ; make it green if its correct
+;     mov es:[si], ax
+;     add si, 2
+;     add di, 2      
+;     dec cx
+;     jmp topColor
+
+; colorIncorrect:
+;     mov correctFlag, 0
+;     mov ax, es:[si]
+;     mov ah, 00001100b   ; make it red if its incorrect
+;     mov es:[si], ax
+;     add si, 2
+;     add di, 2
+;     dec cx
+;     jmp topColor
+
+; exitColor:
+;     pop di si cx bx ax
+;     ret
+; colorSentence ENDP
 ;=========================================
 
 ;=========================================
@@ -115,7 +174,6 @@ writeSentence PROC
     call clearScreen
     call getRandomNumber; 
     mov si, randomSentence       ; we are looking at the first sentence
-    
     mov di, 20 * 160    ; choose writing position on screen
 
 topWriteLoop:
@@ -199,7 +257,6 @@ processKey PROC
 
     cmp al, 0e0h
     je handleAuxiliary
-    
 
     call doRegularKey   ; if its none of the important keys, handle it
     jmp bottom
