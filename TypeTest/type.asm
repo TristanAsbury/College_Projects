@@ -11,29 +11,36 @@ myStack ENDS
 myData SEGMENT
 
     first DB "this is torture", 0
-    second DB 'another thing', 0
+    second DB "i am going insane", 0
+    third DB "i am in a constant state of suffering", 0
+    fourth DB "assembly is a new torturing method", 0
+    fifth DB "the void will consume us all.", 0
+    sixth DB "this is saddening", 0
+    seventh DB "all my friends are turning into procedures", 0
+    eight DB "this is wacky", 0
+    nine DB "sad sad sad", 0
+    ten DB "weeeee", 0
 
     cursorPos DW 0
-    currectFlag DB 0        ;keeps track if the sentence is correct
+    correctFlag DB 0        ; keeps track if the sentence is correct
     insertFlag DB 0
     
-    typedLength DW 0        ;how many chars the user typed
-    sentenceLength DW 0     ;the num of chars in the original sentence
+    typedLength DW 0        ; how many chars the user typed
+    sentenceLength DB 0     ; the num of chars in the original sentence
 
-    randomSentence DB 0
+    randomSentence DW 0
 
 myData ENDS
 
 ; CODE SEGMENT
-
 myCode SEGMENT
-
 assume ds: myData, cs: myCode
 
 ;==========MAIN PROC======================
 main PROC
-	mov ax, MyData ; Make DS point to data segments
-	mov ds, ax 
+    mov correctFlag, byte ptr 1
+	mov ax, myData      ; Make DS point to data segment
+	mov ds, ax
 
     mov ax, 0b800h  
     mov es, ax          ; move start of screen memory address into es
@@ -50,6 +57,7 @@ topCheck:
     cmp al, 27  ; see if the user pressed esc
     je exit
     call processKey
+    call colorSentence
     jmp topCheck
 
 exit:
@@ -60,21 +68,125 @@ main ENDP
 ;=========================================
 
 ;=========================================
+colorSentence PROC
+    push ax bx cx si di
+    mov di, 160*20  ;regular sentence
+    mov si, 160*21  ;typed sentence
+    mov cx, sentenceLength
+
+topColor:
+    cmp cx, 0
+    je exitColor
+    cmp correctFlag, 1  ; if the users typing is correct
+    jne colorIncorrect  ; if the flag is false, don't compare and just color the next characters wrong
+    mov bx, es:[di]     ; else, make bx the reg char
+    mov ax, es:[si]     ;       make ax the typed char
+    cmp al, bl          ; compare the characters (low)
+    jne colorIncorrect  ; if they arent equal, then make incorrect
+    jmp colorCorrect    ; if they are, color correct
+
+colorCorrect:   
+    mov ax, es:[si]     ; move into ax the typed char
+    mov ah, 00001110b   ;make it green if its correct
+    add si, 2
+    add di, 2      
+    dec cx
+    jmp topColor
+
+colorIncorrect:
+    mov correctFlag, 0
+    mov ax, es:[si]
+    mov ah, 00001100b   ;make it red if its incorrect
+    add si, 2
+    add di, 2
+    dec cx
+    jmp topColor
+
+exitColor:
+    pop di si cx bx ax
+    ret
+colorSentence ENDP
+;=========================================
+
+;=========================================
+writeSentence PROC
+    push ax si di
+    
+    call clearScreen
+    call getRandomNumber; 
+    mov si, randomSentence       ; we are looking at the first sentence
+    
+    mov di, 20 * 160    ; choose writing position on screen
+
+topWriteLoop:
+    mov al, ds:[si]     ; move current character into AL
+    cmp al, 0           ; are we at the terminator (not the movie)
+    je done             ; go to done label
+    mov ah, 00001100b   ; give color to character in AH
+    mov es:[di], ax     ; mov char
+    add di, 2           ; next screen position
+    inc si              ; next character
+    jmp topWriteLoop
+
+done:
+    pop di si ax
+    ret
+writeSentence ENDP
+;=========================================
+
+;=========================================
+clearScreen PROC
+    push cx si
+    mov si, 0
+    mov cx, 2000
+
+topClear:
+    cmp cx, 0
+    je exitClear
+    mov es:[si], byte ptr ' '
+    inc si
+    mov es:[si], byte ptr 00000111b
+    inc si
+    dec cx
+    jmp topClear
+
+exitClear:
+    pop si cx
+    ret
+clearScreen ENDP
+;=========================================
+
+;=========================================
 getRandomNumber PROC
-push
+    push ax bx dx si
+    
+    mov ah, 00h
+    int 1ah
 
-mov ah, 00h
-int 1ah
+    mov ax, dx  ; AH contains remainder
+    mov ah, 0
+    mov bl, 10
+    div bl
+    
+    lea si, first - 1
 
-mov ax, dx
-mov dx, 0
+    cmp ah, 0
+    je exitFindSentence
 
-mov bx, 10
-div bx
+topFindSentence:
+    inc si                  ; increment character position
+    cmp ds:[si], byte ptr 0 ; have we found a terminator?
+    jne topFindSentence     ; if not, then go to next char
+    inc bh                  ; if we have, then increment found sentence
+    cmp bh, ah              ; if bh is ah
+    je exitFindSentence     ; if they are the same, we found the sentence
+    jmp topFindSentence     
 
-mov randomSentence, ah
-
-pop
+exitFindSentence:
+    inc si
+    mov randomSentence, si
+    pop si dx bx ax
+    ret
 getRandomNumber ENDP
 ;=========================================
 
@@ -166,12 +278,12 @@ updateCursor ENDP
 doRegularKey PROC
     push ax si di
     ;TODO: CHECK IF ITS LONGER THAN THE SCREEN LENGTH
-    mov ah, 00001010b   ; make the character green
+    mov ah, 00000111b   ; make the character green
     mov di, 21*160      ; set destination to the line
     add di, cursorPos   ; add cursor offset
     cmp cursorPos, 160  ; are we at the end?
     je bottomRegKey     ; dont add it
-
+    inc sentenceLength
     mov es:[di], ax     ; else, put character on screen
 
     add cursorPos, 2
@@ -206,10 +318,33 @@ exitBackspace:
 doBackspace ENDP
 ;=========================================
 
+;========================================
+doDelete PROC
+    push si di bx
+    
+    cmp cursorPos, 160    ; is the cursor pos at the beginning
+    je bottomDel
+
+    mov si, 21*160
+    add si, cursorPos
+    add si, 2
+
+    mov di, 21*160      ; get the character at the current position
+    add di, cursorPos
+
+    call shiftTailLeft
+
+exitDel:
+    pop bx di si
+    ret
+
+doDelete ENDP
+;=========================================
+
 ;=========================================
 shiftTailRight PROC
 
-push 
+push si di bx
 
     cmp sentenceLength, 160 ;is the sentence length the max length?
     je exitShiftRight       ;leave the proc if so
@@ -230,7 +365,7 @@ topShiftRight:
     sub di, 2
 
 exitShiftRight:
-    pop
+    pop bx di si
     ret
 shiftTailRight ENDP
 ;=========================================
@@ -264,55 +399,6 @@ bottomDel:
 pop bx di si
 ret
 shiftTailLeft ENDP
-;=========================================
-
-
-;========================================
-doDelete PROC
-    push si di bx
-    
-    cmp cursorPos, 160    ; is the cursor pos at the beginning
-    je bottomDel
-
-    mov si, 21*160
-    add si, cursorPos
-    add si, 2
-
-    mov di, 21*160      ; get the character at the current position
-    add di, cursorPos
-
-    call shiftTailLeft
-
-exitDel:
-    pop bx di si
-    ret
-
-doDelete ENDP
-;=========================================
-
-;=========================================
-writeSentence PROC
-    push ax si di
-    
-    lea si, first       ; we are looking at the first sentence
-
-    mov di, 20 * 160    ; choose writing position on screen
-
-topWriteLoop:
-    mov al, ds:[si]     ; move current character into AL
-    cmp al, 0           ; are we at the terminator (not the movie)
-    je done             ; go to done label
-    mov ah, 00001100b   ; give color to character in AH
-    mov es:[di], ax     ; mov char
-    add di, 2           ; next screen position
-    inc si              ; next character
-    jmp topWriteLoop
-
-done:
-    pop di si ax
-    ret
-
-writeSentence ENDP
 ;=========================================
 
 myCode ENDS
