@@ -8,7 +8,6 @@ public class Main {
     public static void main(String[] args){
         ServerSocket servSocket;
         Socket regSocket;
-
         Vector<ConnectionToClient> ctcs = new Vector<ConnectionToClient>();
 
         //This only accepts one client

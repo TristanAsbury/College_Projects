@@ -14,7 +14,7 @@ public class ConnectionToClient implements Runnable {
 
         while(keepRunning){
             String str = talker.receive();
-            if(str.equals("done\n")){
+            if(str.equals("done")){
                 keepRunning = false;
             }
             System.out.println("RECD: " + str);
