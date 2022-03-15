@@ -22,10 +22,11 @@ myData SEGMENT
     tenth DB "weeeee", 0
 
     cursorPos DW 0
+
     correctFlag DB 0        ; keeps track if the sentence is correct
     insertFlag DB 0
 
-    typedLength DW 0        ; how many chars the user typed
+    typedLength DW 10        ; how many chars the user typed
     sentenceLength DW 0     ; the num of chars in the original sentence
     randomSentence DW 0
 
@@ -57,7 +58,6 @@ topCheck:
     je exit
     call processKey
     call colorSentence
-    
     jmp topCheck
 
 exit:
@@ -93,78 +93,63 @@ getTimeLapseTenths ENDP
 ;=========================================
 
 ;=========================================
+showTime PROC
+
+
+showTime ENDP
+;=========================================
+
+;=========================================
 sentencesMatch PROC
     ; ON ENTER: 3 things on stack
     ; char* requiredSentence (pointer to the required sentence) (WORD)
-    ; char* userTypedSentence (pointer to screen memory) (BYTE)
+    ; char* userTypedSentence (pointer to screen memory) (WORD)
     ; int numCharsTyped         (typedLength)   (WORD)
     
     push bp     ; keep old bp
     mov bp, sp  ; bp is now pointing to itself
+    push si di bx cx ax
 
-    mov si, word ptr 5*160
-    mov es:[si], byte ptr 'e'
+    mov si, [bp+4]  ; random sentence address
+    mov di, [bp+6]  ; typed sentence
+    mov bx, [bp+8]  ; typed length
+    mov cx, 0
 
-    pop bp
+topMatchSentence:
+    cmp cx, ds:[bx] ; is cx the sentence length
+    je exitMatchSentence
+    mov ax, es:[di] ; put the typed character on screen to ax
+    cmp ds:[si], al ; is the character right?
+    jne isWrong
+    add di, 2
+    inc si
+    inc cx
+    jmp topMatchSentence
+
+isWrong:
+    mov es:[5*160], al
+
+exitMatchSentence:
+    pop ax cx bx di si bp
     ret
 sentencesMatch ENDP
 ;=========================================
 
 ;=========================================
 colorSentence PROC
+    push sp
 
     push typedLength    ; number of chars user typed (2)
     push word ptr 21*160; address of ES where user typed sentence (2)
     push randomSentence ; offset in DS of original sentence (2)
     call sentencesMatch
+    mov di, [bp+6]
     add sp, 6           ; 'clean' the stack
 
+    pop sp
+    ret
 
 colorSentence ENDP
-;=========================================
-
-
-;=========================================
-; colorSentence PROC
-;     push ax bx cx si di
-;     mov correctFlag, byte ptr 1
-;     mov di, 160*20  ;regular sentence
-;     mov si, 160*21  ;typed sentence
-;     mov cx, sentenceLength
-
-; topColor:
-;     cmp cx, 0           ; are we at the last character to compare?
-;     je exitColor        ; if so, exit
-;     cmp correctFlag, 1  ; if the users typing is correct
-;     jne colorIncorrect  ; if the flag is false, don't compare and just color the next characters wrong
-;     mov bx, es:[di]     ; else, make bx the reg char
-;     mov ax, es:[si]     ;       make ax the typed char
-;     cmp al, bl          ; compare the characters (low)
-;     jne colorIncorrect  ; if they arent equal, then make incorrect
-;     jmp colorCorrect    ; if they are, color correct
-
-; colorCorrect:
-;     mov ah, 00001010b   ; make it green if its correct
-;     mov es:[si], ax
-;     add si, 2
-;     add di, 2      
-;     dec cx
-;     jmp topColor
-
-; colorIncorrect:
-;     mov correctFlag, 0
-;     mov ax, es:[si]
-;     mov ah, 00001100b   ; make it red if its incorrect
-;     mov es:[si], ax
-;     add si, 2
-;     add di, 2
-;     dec cx
-;     jmp topColor
-
-; exitColor:
-;     pop di si cx bx ax
-;     ret
-; colorSentence ENDP
 ;=========================================
 
 ;=========================================
@@ -379,8 +364,8 @@ doBackspace ENDP
 doDelete PROC
     push si di bx
     
-    cmp cursorPos, 160    ; is the cursor pos at the beginning
-    je bottomDel
+    cmp cursorPos, 160    ; is the cursor pos at the end
+    je bottomDel    
 
     mov si, 21*160
     add si, cursorPos
@@ -450,7 +435,6 @@ bottomDel:
     inc di
     mov bx, 00001111b
     mov es:[di], bx
-
     inc di
 
 pop bx di si
