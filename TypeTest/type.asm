@@ -50,14 +50,8 @@ main PROC
     call startTimer
 
 topCheck:
-    ; MAIN LOOP, LOOK FOR KEY INPUT
     call updateTimer
-    call checkForShifts
-
-    mov al, correctFlag
-    add al, '0'
-    mov es:[480], al
-    mov es:[481], 00000011b
+    ;call checkForShifts
 
     mov ah, 11h
     int 16h
@@ -66,9 +60,11 @@ topCheck:
     int 16h
     cmp al, 27  ; see if the user pressed esc
     je exit
-    
     call processKey
     call colorSentence
+
+    cmp correctFlag, 1
+    je exit
 
     jmp topCheck
 
@@ -92,8 +88,6 @@ checkForShifts PROC
 
     je topClearSentence        ; if the user pressed both shifts, then restart
     jmp exitThing
-
-    
 
 topClearSentence:
     cmp cx, 0           ; are we at the end of the typing line?
@@ -221,24 +215,23 @@ sentencesMatch PROC
     
     push bp     ; keep old bp
     mov bp, sp  ; bp is now pointing to itself
-    push si di bx cx ax
+    push si di bx cx dx
     
-    mov correctFlag, 1  ; setting correctFlag to true at the beginning of the check (innocent until proven guilty)
+    mov ax, 1  ; setting return value to true at the beginning of the check (innocent until proven guilty)
 
     mov si, [bp+4]  ; random sentence address
     mov di, [bp+6]  ; typed sentence address in ES
     mov bx, [bp+8]  ; typed length
     mov cx, 0
 
-    mov ax, sentenceLength
-    cmp ds:[bx], ax ; compare sentence lengths
-    jne checkLengths
+    cmp bx, sentenceLength  ; are the sentences the same length?
+    jne checkLengths        ; if not, then set the flag to false already
 
 topMatchSentence:
-    cmp cx, ds:[bx] ; is cx the typed length
-    je exitMatchSentence    ; if so, then we exit
-    mov ax, es:[di]
-    cmp ds:[si], al ; is the character right?
+    cmp cx, sentenceLength ; is cx the typed length
+    je exitMatchSentence
+    mov dx, es:[di]
+    cmp ds:[si], dl ; is the character right?
     jne isWrong     ; if its not the right character go to end 
     add di, 2       ; else, go to next written character on screen
     inc si          ; go to next character of sentence
@@ -246,16 +239,16 @@ topMatchSentence:
     jmp topMatchSentence    ; go back to top
 
 isWrong:
-    mov [bp+6], di  ; move the invalid character position to the sentence address variable we pushed onto the stack
-    mov correctFlag, 5
+    mov ax, 0
     jmp exitMatchSentence
 
 checkLengths:
-    mov correctFlag, 0
+    mov ax, 0
     jmp topMatchSentence
 
 exitMatchSentence:
-    pop ax cx bx di si bp
+    mov [bp+6], di  ; move the invalid character position to the sentence address variable we pushed onto the stack
+    pop dx cx bx di si bp
     ret
 sentencesMatch ENDP
 ;=========================================
@@ -266,14 +259,19 @@ colorSentence PROC
     push typedLength    ; number of chars user typed (2)
     push word ptr 21*160; address of ES where user typed sentence (2)
     push randomSentence ; offset in DS of original sentence (2)
-    call sentencesMatch ; adds return address to the stack
+    call sentencesMatch ; ax contains true of false
+
+
+    ;;FOR DEBUGGING
+    mov correctFlag, al
 
     mov bp, sp          ; make bp point to the same thing sp is
     mov di, [bp+2]      ; DI contains the position of the incorrect letter
     add sp, 6           ; 'clean' the stack
+
+    ;;FOR DEBUGGING
     mov ax, es:[di]     ; move the incorrect letter (with color) into ax
     mov es:[320], ax    ; put ax onto screen
-
     mov si, 21*160
 
 topColorLoop:
@@ -296,12 +294,13 @@ colorIncorrect:
     mov es:[si], byte ptr 00001100b
     inc si
     jmp topColorLoop
-
+    
 exitColoring:
     pop di ax sp bp
     ret
 colorSentence ENDP
 ;=========================================
+
 
 ;=========================================
 writeSentence PROC
@@ -478,6 +477,7 @@ updateCursor ENDP
 ;=========================================
 doRegularKey PROC
     push ax si di
+
     ;TODO: CHECK IF ITS LONGER THAN THE SCREEN LENGTH
     mov ah, 00000111b   ; put the color
     mov di, 21*160      ; set destination to the line
