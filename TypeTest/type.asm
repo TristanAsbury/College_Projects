@@ -53,6 +53,14 @@ topCheck:
     ; MAIN LOOP, LOOK FOR KEY INPUT
     call updateTimer
     call checkForShifts
+
+    mov al, correctFlag
+    add al, '0'
+    mov es:[480], al
+    mov es:[481], 00000011b
+
+
+
     mov ah, 11h
     int 16h
     jz topCheck ; if the user didn't type anything, dont handle any key
@@ -63,6 +71,7 @@ topCheck:
     
     call processKey
     call colorSentence
+
     jmp topCheck
 
 exit:
@@ -216,12 +225,18 @@ sentencesMatch PROC
     
     push bp     ; keep old bp
     mov bp, sp  ; bp is now pointing to itself
-    push si di bx cx
+    push si di bx cx ax
+    
+    mov correctFlag, 1  ; setting correctFlag to true at the beginning of the check (innocent until proven guilty)
 
     mov si, [bp+4]  ; random sentence address
     mov di, [bp+6]  ; typed sentence address in ES
     mov bx, [bp+8]  ; typed length
     mov cx, 0
+
+    mov ax, sentenceLength
+    cmp ds:[bx], ax
+    jne checkLengths
 
 topMatchSentence:
     cmp cx, ds:[bx] ; is cx the typed length
@@ -236,9 +251,15 @@ topMatchSentence:
 
 isWrong:
     mov [bp+6], di  ; move the invalid character position to the sentence address variable we pushed onto the stack
+    mov correctFlag, 5
+    jmp exitMatchSentence
+
+checkLengths:
+    mov correctFlag, 0
+    jmp topMatchSentence
 
 exitMatchSentence:
-    pop cx bx di si bp
+    pop ax cx bx di si bp
     ret
 sentencesMatch ENDP
 ;=========================================
@@ -291,7 +312,7 @@ writeSentence PROC
     push ax si di
     
     call clearScreen
-    call getRandomNumber; 
+    call getRandomNumber 
     mov si, randomSentence       ; we are looking at the first sentence
     mov di, 20 * 160    ; choose writing position on screen
 
