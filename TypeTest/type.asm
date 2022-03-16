@@ -1,3 +1,6 @@
+; AUTHOR: TRISTAN ASBURY
+; STRESS: HIGH
+; FEELING AFTER GETTING IT DONE: EUPHORIC
 ; STACK SEGMENT
 
 myStack SEGMENT STACK
@@ -331,12 +334,12 @@ getRandomNumber PROC
     mov ah, 00h
     int 1ah
 
-    mov ax, dx  ; AH contains remainder
-    mov ah, 0
-    mov bl, 10
-    div bl
+    mov ax, dx  ; AH contains remainder, put that into dx
+    mov ah, 0   ; put 0 into ah
+    mov bl, 10  ; move 10 into bl
+    div bl      ; divide ax by 10
     
-    lea si, first - 1
+    lea si, first - 1   ; get our address of the first sentence, minus 1
 
     cmp ah, 0
     je exitFindSentence
@@ -443,16 +446,16 @@ checkForShifts ENDP
 ;=========================================
 doAuxiliary PROC
     push ax
-    cmp ah, 4bh
+    cmp ah, 4bh         ; left arrow?
     je goLeft
 
-    cmp ah, 4dh
-    je goRight
+    cmp ah, 4dh         ; right arrow?
+    je goRight          
 
-    cmp ah, 53h
+    cmp ah, 53h         ; delete key?
     je handleDelete
 
-    cmp ah, 52h
+    cmp ah, 52h         ; insert key?
     je handleInsertPress
 
 goLeft:
@@ -463,8 +466,8 @@ goLeft:
 
 goRight:
     mov ax, typedLength
-    mov bx, 2
-    mul bx
+    mov bl, 2
+    mul bl
     cmp cursorPos, ax   ; are we are at the end?
     je doneArrow        ; if so, then we cant move anymore
     add cursorPos, 2    ; if not, then move to the right
@@ -490,10 +493,8 @@ updateCursor PROC
     push ax 
     mov dh, 21          ; row
     mov ax, cursorPos   ; column
-
-    mov bl, 2           
-    div bl
-
+    mov bl, 2           ; divide by 2
+    div bl          
     mov dl, al
 
     mov ah, 02h     
@@ -530,6 +531,20 @@ regularHandle:
     jmp handleOverride ; else, use handleOverride
 
 handleOverride:
+    push ax             
+    mov ax, typedLength
+    mov bl, 2
+    mul bl
+
+    cmp cursorPos, ax       ; is the overriding character after the typed length???
+    jge incrementTypedLength    ; if so, then we increment typed length
+    jmp regularReplace      ; else, we just replace
+
+incrementTypedLength:
+    inc typedLength
+
+regularReplace:
+    pop ax
     cmp cursorPos, 160  ; are we at the end?
     je bottomRegKey     ; dont add it
     mov es:[di], ax     ; else, put character on screen
@@ -581,23 +596,30 @@ doBackspace ENDP
 
 ;========================================
 doDelete PROC
-    push si di bx
+    push si di bx ax
     
-    cmp cursorPos, 160    ; is the cursor pos at the end
-    je bottomDel    
+    mov ax, typedLength
+    mov bl, 2
+    mul bl
 
-    dec typedLength
-    mov si, 21*160
-    add si, cursorPos
-    add si, 2
+    cmp cursorPos, ax   ; are we past the end of our sentence?
+    jge exitDel         ; if so, don't do anything
+
+    cmp cursorPos, 160    ; is the cursor pos at the end
+    je bottomDel        ; if so, dont do anything
+
+    dec typedLength     ; decrement the typed length
+    mov si, 21*160      ; move into si, the line of our typed sentence
+    add si, cursorPos   ; add the cursorpos offset
+    add si, 2           ; add 2
 
     mov di, 21*160      ; get the character at the current position
-    add di, cursorPos
+    add di, cursorPos   ; add the character offset
 
-    call shiftTailLeft
+    call shiftTailLeft  ; shift the tail left
 
 exitDel:
-    pop bx di si
+    pop ax bx di si
     ret
 
 doDelete ENDP
@@ -637,24 +659,24 @@ push si di bx
 
 topDelLoop:
     cmp di, 21 * 160 + 158  ; are we at the end?
-    je bottomDel
+    je bottomDel            ; if so, leave
 
-    mov bx, es:[si]
-    mov es:[di], bx
+    mov bx, es:[si]         ; if not, store, into bx, the character at si
+    mov es:[di], bx         ; put that character into position di
 
-    add si, 2
+    add si, 2               ; increment both
     add di, 2
     
-    jmp topDelLoop
+    jmp topDelLoop          ; back to top
 
 bottomDel:
-    mov bx, 32
-    mov es:[di], bx
+    mov bx, 32              ; move a space to bx
+    mov es:[di], bx         ; move that to the last position
 
-    inc di
-    mov bx, 00001111b
-    mov es:[di], bx
-    inc di
+    inc di                  ; increment di
+    mov bx, 00001111b       ; make it white
+    mov es:[di], bx         ; move that color into the last position
+    inc di                  ; increment
 
 pop bx di si
 ret
