@@ -21,14 +21,13 @@ myData SEGMENT
     ninth DB "sad sad sad", 0
     tenth DB "weeeee", 0
 
-    cursorPos DW 0
-
+    
     correctFlag DB 0        ; keeps track if the sentence is correct
-
     insertFlag DB 1         ; insert mode is enabled by default
-
     typedLength DW 0        ; how many chars the user typed
+    isPlaying DB 0
 
+    cursorPos DW 0
     sentenceLength DW 0     ; the num of chars in the original sentence
     randomSentence DW 0
     startTime DW 0
@@ -53,6 +52,7 @@ main PROC
 topCheck:
     ; MAIN LOOP, LOOK FOR KEY INPUT
     call updateTimer
+    call checkForShifts
     mov ah, 11h
     int 16h
     jz topCheck ; if the user didn't type anything, dont handle any key
@@ -60,10 +60,9 @@ topCheck:
     int 16h
     cmp al, 27  ; see if the user pressed esc
     je exit
+    
     call processKey
     call colorSentence
-    
-
     jmp topCheck
 
 exit:
@@ -72,6 +71,40 @@ exit:
 main ENDP
 ;=========================================
 
+;=========================================
+checkForShifts PROC
+    push ax
+
+    mov ah, 12h ; call shift interrupt, stores bitfield in al
+    int 16h
+    and al, 00000010b
+    cmp al, 00000010b
+    
+    mov cx, 160
+    mov si, 21*160
+
+    je topClearSentence        ; if the user pressed both shifts, then restart
+    jmp exitThing
+
+topClearSentence:
+    mov isPlaying, 0
+    mov cursorPos, 0
+    cmp cx, 0
+    je resetTimer
+    mov es:[si], ' '
+    sub cx, 2
+    add si, 2
+    jmp topClearSentence
+
+resetTimer:
+
+
+exitThing:
+    pop ax
+    ret
+
+checkForShifts ENDP
+;=========================================
 
 ;=========================================
 startTimer PROC
@@ -123,57 +156,50 @@ getTimeLapseTenths ENDP
 showTime PROC
     push bp
     mov bp, sp
-    push ax bx dx
-
+    push ax bx dx si
     mov ax, [bp+4]
     mov bx, 10
 
-    mov dx, 0
-    div bx
-    add dx, '0'
-    push dx
-
-    mov dx, 0
-    div bx
-    add dx, '0'
-    push dx
-    
-    mov dx, 0
-    div bx
-    add dx, '0'
-    push dx
+    mov si, 0
+pushDigitTop:
+    cmp si, 4
+    je nextStep
 
     mov dx, 0
     div bx
     add dx, '0'
     push dx
 
+    inc si
+    jmp pushDigitTop
+
+nextStep:
     mov dx, 0
     div bx
     add dx, '0'
     mov es:[160*2], dl
     mov es:[160*2+1], 00000111b
+    mov si, 2
 
+topShowLoop:
+    cmp si, 12
+    je exitShow
+    cmp si, 8
+    je putDecimal
     pop dx
-    mov es:[160*2+2], dl
-    mov es:[160*2+3], 00000111b
+    mov es:[160*2+si], dl
+    mov es:[160*2+si+1], 00000111b
+    add si, 2
+    jmp topShowLoop
 
-    pop dx
-    mov es:[160*2+4], dl
-    mov es:[160*2+5], 00000111b
+putDecimal:
+    mov es:[160*2+si], '.'
+    mov es:[160*2+si+1], 00000111b
+    add si, 2
+    jmp topShowLoop
 
-    pop dx
-    mov es:[160*2+6], dl
-    mov es:[160*2+7], 00000111b
-
-    mov es:[160*2+8], '.'
-    mov es:[160*2+9], 00000111b
-
-    pop dx
-    mov es:[160*2+10], dl
-    mov es:[160*2+11], 00000111b
-
-    pop dx bx ax bp
+exitShow:
+    pop si dx bx ax bp
     ret 2
 
 showTime ENDP
@@ -382,21 +408,29 @@ doAuxiliary PROC
     cmp ah, 53h
     je handleDelete
 
+    cmp ah, 52h
+    je handleInsertPress
+
 goLeft:
     cmp cursorPos, 0    ; are we at the beginning?
-    je doneArrow
-    sub cursorPos, 2
-    jmp doneArrow
+    je doneArrow        ; if we are, cant move anymore
+    sub cursorPos, 2    ; if not, then move to the left
+    jmp doneArrow       
 
 goRight:
-    cmp cursorPos, 160
-    je doneArrow
-    add cursorPos, 2
-    jmp doneArrow
+    cmp cursorPos, 158  ; are we are at the end?
+    je doneArrow        ; if so, then we cant move anymore
+    add cursorPos, 2    ; if not, then move to the right
+    jmp doneArrow       ; go to end
 
 handleDelete:
     call doDelete
     jmp doneArrow
+
+handleInsertPress:
+    mov al, insertFlag
+    xor al, 00000001b
+    mov insertFlag, al
 
 doneArrow:
     pop ax
@@ -407,17 +441,17 @@ doAuxiliary ENDP
 ;=========================================
 updateCursor PROC
 
-    push ax
-    mov dh, 21
-    
-    mov ax, cursorPos
-    mov bl, 2
+    push ax 
+    mov dh, 21          ; row
+    mov ax, cursorPos   ; column
+
+    mov bl, 2           
     div bl
 
-    mov dl, al
+    mov dl, al      
 
-    mov ah, 02h
-    int 10h
+    mov ah, 02h     
+    int 10h         ; call the interrupt
 
     pop ax
     ret
@@ -442,7 +476,6 @@ doRegularKey PROC
 handleOverwrite:
     cmp cursorPos, 160  ; are we at the end?
     je bottomRegKey     ; dont add it
-    inc typedLength
     mov es:[di], ax     ; else, put character on screen
     add cursorPos, 2
     jmp bottomRegKey
