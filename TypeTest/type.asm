@@ -51,26 +51,29 @@ main PROC
 
     call writeSentence
 
+    push 0              ; call showTime with argument being 0 tenths (because game hasn't started until player types)
+    call showTime   
+
 topCheck:
-    call updateTimer
-    call updateCursor
+    call updateTimer    ; update timer
+    call checkForShifts ; check for the shift keys
+    call updateCursor   ; update cursor
+
     mov ah, 11h
-    int 16h
+    int 16h     ; peek if there is a key in the buffer
     jz topCheck ; if the user didn't type anything, dont handle any key
-    mov ah, 10h
-    int 16h
+    mov ah, 10h 
+    int 16h     ; get the key in the buffer and store in AL
     cmp al, 27  ; see if the user pressed esc
-    je exit
-    call processKey
-    call colorSentence
-
-    cmp correctFlag, 1
-    je exit
-
-    jmp topCheck
+    je exit     ; if so, exit
+    call processKey ; if its another key, process it
+    call colorSentence  ; after the key has been processed, color the current sentence on the screen
+    cmp correctFlag, 1  ; see if the sentence is correct
+    je exit             ; if it is, exit
+    jmp topCheck        ; go back to the top
 
 exit:
-    mov AH, 4Ch     ; These two instructions use a DOS interrupt
+    mov AH, 4Ch     ; These two instructions use a DOS interrupt to give control back to OS
     int 21h
 main ENDP
 ;=========================================
@@ -79,8 +82,8 @@ main ENDP
 startTimer PROC
     push cx ax dx
     mov ah, 00h
-    int 1ah
-    mov startTime, dx
+    int 1ah             ; get current ticks into dx
+    mov startTime, dx   ; move dx into startTime
     pop dx ax cx
     ret
 startTimer ENDP
@@ -88,16 +91,15 @@ startTimer ENDP
 
 ;=========================================
 updateTimer PROC
-    cmp isPlaying, 1
-    jne exitUpdateTimer
+    cmp isPlaying, 1        ; is the user currently in the game?
+    jne exitUpdateTimer     ; if not, then don't update the timer
 
-    push startTime
-    call getTimeLapseTenths ; returns, in ax, the tenths of seconds
-    push ax                 ; push ax onto stack as an argument for showing time
+    push startTime          ; else, push the startTime
+    call getTimeLapseTenths ; returns, in ax, the tenths of seconds since start time
+    push ax                 ; push those tenths of seconds onto stack as an argument for showing time
     call showTime           ; call show time
-
     cmp ax, maxTime         ; compare the current time to the max time
-    je exit                 ; if current time is equal to max tenths, then exit
+    je exit                 ; if current time is equal to max tenths, then exit the program
     
 exitUpdateTimer:
     ret
@@ -106,63 +108,62 @@ updateTimer ENDP
 
 ;=========================================
 getTimeLapseTenths PROC
-    push bp
-    mov bp, sp
-    push dx bx
+    push bp         ; push bp on stack to preserve
+    mov bp, sp      ; make bp point to sp (which is currently pointing to preserved bp)
+    push dx bx      ; preserve bx and dx
 
-    mov ah, 00h
+    mov ah, 00h     ; call the interrupt to get current ticks
     int 1ah
 
-    sub dx, [bp+4]
-    mov ax, dx
-    mov bx, 55
-    mul bx
+    sub dx, [bp+4]  ; subtract startTime from current time to get elapsed time of game
+    mov ax, dx      ; move that time into ax
+    mov bx, 55      ; multiply by 55 to get total amount of milliseconds
+    mul bx          
 
-    mov bx, 100
+    mov bx, 100     ; divide by 100 to get tenths of the seconds
     div bx
     
     pop bx dx bp
-    ret 2
+    ret 2           ; return to move stack pointer back to return address
 getTimeLapseTenths ENDP
 ;=========================================
 
 ;=========================================
-showTime PROC
-    push bp
-    mov bp, sp
-    push ax bx dx si
-    mov ax, [bp+4]
-    mov bx, 10
-    mov si, 0
+showTime PROC   
+    push bp         ; preserve bp
+    mov bp, sp      ; make bp point to sp (which is pointing to preserved bp)
+    push ax bx dx si; preserve all other registers
+    mov ax, [bp+4]  ; move into ax, the amount of tenths
+    mov bx, 10      ; move 10 into bx
+    mov si, 0       ; make si 0
 
 pushDigitTop:
-    cmp si, 4
-    je nextStep
+    cmp si, 4       ; see if we have reached the last digit
+    je nextStep     ; if so, go to the next step
 
-    mov dx, 0
-    div bx
-    add dx, '0'
-    push dx
-
-    inc si
-    jmp pushDigitTop
+    mov dx, 0       ; if not, make dx 0
+    div bx          ; divide ax by 10
+    add dx, '0'     ; add '0' to dx to get the character
+    push dx         ; push the character to the stack
+    inc si          ; go to next position
+    jmp pushDigitTop;jmp to top
 
 nextStep:
-    mov dx, 0
-    div bx
+    mov dx, 0       ; do final step
+    div bx      
     add dx, '0'
-    mov es:[160*19], dl
-    mov si, 2
+    mov es:[160*19], dl ; put the character into that position
+    mov si, 2           ; next position
 
 topShowLoop:
-    cmp si, 12
-    je exitShow
-    cmp si, 8
-    je putDecimal
-    pop dx
-    mov es:[160*19+si], dl
-    add si, 2
-    jmp topShowLoop
+    cmp si, 12      ; are we at the last printing position
+    je exitShow     ; if so, exit
+    cmp si, 8       ; are we at the position for the decimal
+    je putDecimal   ; if so, do the decimal
+    pop dx          ; else, pop the value at the current position in the timer
+    mov es:[160*19+si], dl  ;print the value on the screen position
+    add si, 2       ; next screen position
+    jmp topShowLoop ; back to top
 
 putDecimal:
     mov es:[160*19+si], '.'
@@ -271,8 +272,8 @@ colorSentence ENDP
 writeSentence PROC
     push ax si di
     call clearScreen
-    call getRandomNumber 
-    mov si, randomSentence       ; we are looking at the first sentence
+    call getRandomNumber    
+    mov si, randomSentence  ; we are looking at the first sentence
     mov di, 20 * 160    ; choose writing position on screen
     mov sentenceLength, 0
 topWriteLoop:
@@ -351,7 +352,7 @@ getRandomNumber ENDP
 ;=========================================
 processKey PROC
     push ax
-    call checkForShifts
+
     cmp al, 8           ; check if backspace
     je handleBackspace
 
@@ -377,12 +378,10 @@ processKey ENDP
 
 ;=========================================
 restartGame PROC
-    
     call writeSentence
     mov cursorPos, 0    ; mov cursor to beginning
-    mov typedLength, 0  
-    mov isPlaying, 0
-
+    mov typedLength, 0  ; make typed length 0
+    mov isPlaying, 0    ; the player hasn't started typing
     ret
 restartGame ENDP
 ;=========================================
@@ -398,7 +397,7 @@ checkForShifts PROC
     mov si, 21*160
 
     and al, 00000011b           ; check for shifts
-    cmp al, 00000011b
+    cmp al, 00000011b           
     je topClearSentence         ; if the user pressed both shifts, then restart
     jmp exitWithoutRestart      ; else, exit without restarting
 
@@ -414,6 +413,8 @@ exitWithRestart:
     mov cursorPos, 0    ; puts cursor at beginning
     mov typedLength, 0  ; makes typed length 0
     mov isPlaying, 0
+    push 0
+    call showTime           ; call show time
 
 exitWithoutRestart:
     pop ax
@@ -436,14 +437,18 @@ doAuxiliary PROC
     cmp ah, 52h
     je handleInsertPress
 
-    cmp ah, 47h
-    je handleHome
+    cmp ah, 59h
+    je handleF1
 
 goLeft:
     cmp cursorPos, 0    ; are we at the beginning?
     je doneArrow        ; if we are, cant move anymore
     sub cursorPos, 2    ; if not, then move to the left
     jmp doneArrow       
+
+handleF1:
+    call restartGame
+    jmp doneArrow
 
 goRight:
     mov ax, typedLength
@@ -456,10 +461,6 @@ goRight:
 
 handleDelete:
     call doDelete
-    jmp doneArrow
-
-handleHome:
-    call restartGame
     jmp doneArrow
 
 handleInsertPress:
@@ -475,7 +476,6 @@ doAuxiliary ENDP
 
 ;=========================================
 updateCursor PROC
-
     push ax 
     mov dh, 21          ; row
     mov ax, cursorPos   ; column
@@ -483,7 +483,7 @@ updateCursor PROC
     mov bl, 2           
     div bl
 
-    mov dl, al      
+    mov dl, al
 
     mov ah, 02h     
     int 10h         ; call the interrupt
@@ -515,10 +515,10 @@ regularHandle:
     je bottomRegKey     ; if so, we don't type anything
 
     cmp insertFlag, 1   ; is insert mode enabled?
-    je handleInsert
-    jmp handleOverwrite
+    je handleInsert     ; if so, then use handleInsert
+    jmp handleOverride ; else, use handleOverride
 
-handleOverwrite:
+handleOverride:
     cmp cursorPos, 160  ; are we at the end?
     je bottomRegKey     ; dont add it
     mov es:[di], ax     ; else, put character on screen
