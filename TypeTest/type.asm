@@ -25,7 +25,6 @@ myData SEGMENT
     insertFlag DB 1         ; insert mode is enabled by default
     typedLength DW 0        ; how many chars the user typed
     isPlaying DB 0          ; is the user playing?
-
     cursorPos DW 0          ; holds the current offset of the cursor
     sentenceLength DW 0     ; the num of chars in the original sentence
     randomSentence DW 0     ; holds the address of the random sentence
@@ -38,8 +37,9 @@ myData SEGMENT
 myData ENDS
 
 ; CODE SEGMENT
+
 myCode SEGMENT
-assume ds: myData, cs: myCode
+    assume ds: myData, cs: myCode
 
 ;==========MAIN PROC======================
 main PROC
@@ -234,10 +234,7 @@ colorSentence PROC
     push randomSentence ; offset in DS of original sentence (2)
     call sentencesMatch ; ax contains true of false
 
-
-    ;;FOR DEBUGGING
     mov correctFlag, al
-
     mov bp, sp          ; make bp point to the same thing sp is
     mov di, [bp+2]      ; DI contains the position of the incorrect letter
     add sp, 6           ; 'clean' the stack
@@ -273,12 +270,11 @@ colorSentence ENDP
 ;=========================================
 writeSentence PROC
     push ax si di
-    
     call clearScreen
     call getRandomNumber 
     mov si, randomSentence       ; we are looking at the first sentence
     mov di, 20 * 160    ; choose writing position on screen
-
+    mov sentenceLength, 0
 topWriteLoop:
     mov al, ds:[si]     ; move current character into AL
     cmp al, 0           ; are we at the terminator (not the movie)
@@ -355,10 +351,7 @@ getRandomNumber ENDP
 ;=========================================
 processKey PROC
     push ax
-    
     call checkForShifts
-    call checkForF1
-
     cmp al, 8           ; check if backspace
     je handleBackspace
 
@@ -383,33 +376,29 @@ processKey ENDP
 ;=========================================
 
 ;=========================================
-checkForF1 PROC
-    cmp al, 3bh ;is it f1 key?
-    jne exitCheckF1
-
-startNewGame:   
+restartGame PROC
+    
     call writeSentence
-    mov cursorPos, 0
-    mov typedLength, 0
+    mov cursorPos, 0    ; mov cursor to beginning
+    mov typedLength, 0  
     mov isPlaying, 0
 
-exitCheckF1:
     ret
-
-checkForF1 ENDP
+restartGame ENDP
 ;=========================================
 
 ;=========================================
 checkForShifts PROC
     push ax
+
     mov ah, 12h ; call shift interrupt, stores bitfield in al
     int 16h
 
-    and al, 00000011b   ; check for shifts
-    cmp al, 00000011b   
-    
     mov cx, 160
     mov si, 21*160
+
+    and al, 00000011b           ; check for shifts
+    cmp al, 00000011b
     je topClearSentence         ; if the user pressed both shifts, then restart
     jmp exitWithoutRestart      ; else, exit without restarting
 
@@ -447,6 +436,9 @@ doAuxiliary PROC
     cmp ah, 52h
     je handleInsertPress
 
+    cmp ah, 47h
+    je handleHome
+
 goLeft:
     cmp cursorPos, 0    ; are we at the beginning?
     je doneArrow        ; if we are, cant move anymore
@@ -464,6 +456,10 @@ goRight:
 
 handleDelete:
     call doDelete
+    jmp doneArrow
+
+handleHome:
+    call restartGame
     jmp doneArrow
 
 handleInsertPress:
