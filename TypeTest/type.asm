@@ -20,17 +20,20 @@ myData SEGMENT
     eighth DB "this is wacky", 0
     ninth DB "sad sad sad", 0
     tenth DB "weeeee", 0
-
     
     correctFlag DB 0        ; keeps track if the sentence is correct
     insertFlag DB 1         ; insert mode is enabled by default
     typedLength DW 0        ; how many chars the user typed
-    isPlaying DB 0
+    isPlaying DB 0          ; is the user playing?
 
-    cursorPos DW 0
+    cursorPos DW 0          ; holds the current offset of the cursor
     sentenceLength DW 0     ; the num of chars in the original sentence
-    randomSentence DW 0
-    startTime DW 0
+    randomSentence DW 0     ; holds the address of the random sentence
+
+    currentTime DW 0        ; the amount of tenths of seconds
+    startTime DW 0          ; the starting time
+
+    maxTime equ 100          ; in tenths of seconds
 
 myData ENDS
 
@@ -47,12 +50,10 @@ main PROC
     mov es, ax          ; move start of screen memory address into es
 
     call writeSentence
-    call startTimer
 
 topCheck:
     call updateTimer
-    ;call checkForShifts
-
+    call updateCursor
     mov ah, 11h
     int 16h
     jz topCheck ; if the user didn't type anything, dont handle any key
@@ -75,58 +76,30 @@ main ENDP
 ;=========================================
 
 ;=========================================
-checkForShifts PROC
-    push ax
-
-    mov ah, 12h ; call shift interrupt, stores bitfield in al
-    int 16h
-    and al, 00000011b
-    cmp al, 00000011b
-    
-    mov cx, 160
-    mov si, 21*160
-
-    je topClearSentence        ; if the user pressed both shifts, then restart
-    jmp exitThing
-
-topClearSentence:
-    cmp cx, 0           ; are we at the end of the typing line?
-    je exitThing        ; if so, we are done
-    mov es:[si], ' '    ; if not, then put a blank on the current position
-    sub cx, 2           ; sub cx
-    add si, 2           ; go to next character position
-    jmp topClearSentence
-
-exitThing:
-    mov cursorPos, 0    ; puts cursor at beginning
-    mov typedLength, 0  ; makes typed length 0
-    call startTimer     ; restarts timer 
-    pop ax
-    ret
-
-checkForShifts ENDP
-;=========================================
-
-;=========================================
 startTimer PROC
     push cx ax dx
     mov ah, 00h
     int 1ah
-
     mov startTime, dx
-    
     pop dx ax cx
     ret
-
 startTimer ENDP
 ;=========================================
 
 ;=========================================
 updateTimer PROC
+    cmp isPlaying, 1
+    jne exitUpdateTimer
+
     push startTime
-    call getTimeLapseTenths
-    push ax
-    call showTime
+    call getTimeLapseTenths ; returns, in ax, the tenths of seconds
+    push ax                 ; push ax onto stack as an argument for showing time
+    call showTime           ; call show time
+
+    cmp ax, maxTime         ; compare the current time to the max time
+    je exit                 ; if current time is equal to max tenths, then exit
+    
+exitUpdateTimer:
     ret
 updateTimer ENDP
 ;=========================================
@@ -269,11 +242,6 @@ colorSentence PROC
     mov di, [bp+2]      ; DI contains the position of the incorrect letter
     add sp, 6           ; 'clean' the stack
 
-    ;;FOR DEBUGGING
-    mov ax, es:[di]     ; move the incorrect letter (with color) into ax
-    mov es:[320], ax    ; put ax onto screen
-    mov si, 21*160
-
 topColorLoop:
     cmp si, 22*160      ; are we at end?
     jge exitColoring    ; if so, exit
@@ -294,7 +262,7 @@ colorIncorrect:
     mov es:[si], byte ptr 00001100b
     inc si
     jmp topColorLoop
-    
+
 exitColoring:
     pop di ax sp bp
     ret
@@ -388,6 +356,9 @@ getRandomNumber ENDP
 processKey PROC
     push ax
     
+    call checkForShifts
+    call checkForF1
+
     cmp al, 8           ; check if backspace
     je handleBackspace
 
@@ -406,10 +377,59 @@ handleAuxiliary:
     jmp bottom
 
 bottom:
-    call updateCursor
     pop ax
     ret
 processKey ENDP
+;=========================================
+
+;=========================================
+checkForF1 PROC
+    cmp al, 3bh ;is it f1 key?
+    jne exitCheckF1
+
+startNewGame:   
+    call writeSentence
+    mov cursorPos, 0
+    mov typedLength, 0
+    mov isPlaying, 0
+
+exitCheckF1:
+    ret
+
+checkForF1 ENDP
+;=========================================
+
+;=========================================
+checkForShifts PROC
+    push ax
+    mov ah, 12h ; call shift interrupt, stores bitfield in al
+    int 16h
+
+    and al, 00000011b   ; check for shifts
+    cmp al, 00000011b   
+    
+    mov cx, 160
+    mov si, 21*160
+    je topClearSentence         ; if the user pressed both shifts, then restart
+    jmp exitWithoutRestart      ; else, exit without restarting
+
+topClearSentence:
+    cmp cx, 0           ; are we at the end of the typing line?
+    je exitWithRestart  ; if so, we are done
+    mov es:[si], ' '    ; if not, then put a blank on the current position
+    sub cx, 2           ; sub cx
+    add si, 2           ; go to next character position
+    jmp topClearSentence
+
+exitWithRestart:
+    mov cursorPos, 0    ; puts cursor at beginning
+    mov typedLength, 0  ; makes typed length 0
+    mov isPlaying, 0
+
+exitWithoutRestart:
+    pop ax
+    ret
+checkForShifts ENDP
 ;=========================================
 
 ;=========================================
@@ -434,7 +454,10 @@ goLeft:
     jmp doneArrow       
 
 goRight:
-    cmp cursorPos, 158  ; are we are at the end?
+    mov ax, typedLength
+    mov bx, 2
+    mul bx
+    cmp cursorPos, ax   ; are we are at the end?
     je doneArrow        ; if so, then we cant move anymore
     add cursorPos, 2    ; if not, then move to the right
     jmp doneArrow       ; go to end
@@ -478,14 +501,23 @@ updateCursor ENDP
 doRegularKey PROC
     push ax si di
 
+    cmp isPlaying, 1    ; has the game started?
+    jne startGame        ; tell game to start
+    jmp regularHandle
+
+startGame:
+    mov isPlaying, 1
+    call startTimer
+
+regularHandle:
     ;TODO: CHECK IF ITS LONGER THAN THE SCREEN LENGTH
     mov ah, 00000111b   ; put the color
     mov di, 21*160      ; set destination to the line
     add di, cursorPos   ; add cursor offset
-
+    
     cmp typedLength, 160; did we type max amount of chars?
     je bottomRegKey     ; if so, we don't type anything
-    
+
     cmp insertFlag, 1   ; is insert mode enabled?
     je handleInsert
     jmp handleOverwrite
@@ -513,7 +545,6 @@ handleInsert:
 bottomRegKey:
     pop di si ax
     ret
-
 doRegularKey ENDP
 ;=========================================
 
