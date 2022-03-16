@@ -59,8 +59,6 @@ topCheck:
     mov es:[480], al
     mov es:[481], 00000011b
 
-
-
     mov ah, 11h
     int 16h
     jz topCheck ; if the user didn't type anything, dont handle any key
@@ -86,8 +84,8 @@ checkForShifts PROC
 
     mov ah, 12h ; call shift interrupt, stores bitfield in al
     int 16h
-    and al, 00000010b
-    cmp al, 00000010b
+    and al, 00000011b
+    cmp al, 00000011b
     
     mov cx, 160
     mov si, 21*160
@@ -95,20 +93,20 @@ checkForShifts PROC
     je topClearSentence        ; if the user pressed both shifts, then restart
     jmp exitThing
 
+    
+
 topClearSentence:
-    mov isPlaying, 0
-    mov cursorPos, 0
-    cmp cx, 0
-    je resetTimer
-    mov es:[si], ' '
-    sub cx, 2
-    add si, 2
+    cmp cx, 0           ; are we at the end of the typing line?
+    je exitThing        ; if so, we are done
+    mov es:[si], ' '    ; if not, then put a blank on the current position
+    sub cx, 2           ; sub cx
+    add si, 2           ; go to next character position
     jmp topClearSentence
 
-resetTimer:
-
-
 exitThing:
+    mov cursorPos, 0    ; puts cursor at beginning
+    mov typedLength, 0  ; makes typed length 0
+    call startTimer     ; restarts timer 
     pop ax
     ret
 
@@ -168,8 +166,8 @@ showTime PROC
     push ax bx dx si
     mov ax, [bp+4]
     mov bx, 10
-
     mov si, 0
+
 pushDigitTop:
     cmp si, 4
     je nextStep
@@ -186,8 +184,7 @@ nextStep:
     mov dx, 0
     div bx
     add dx, '0'
-    mov es:[160*2], dl
-    mov es:[160*2+1], 00000111b
+    mov es:[160*19], dl
     mov si, 2
 
 topShowLoop:
@@ -196,14 +193,13 @@ topShowLoop:
     cmp si, 8
     je putDecimal
     pop dx
-    mov es:[160*2+si], dl
-    mov es:[160*2+si+1], 00000111b
+    mov es:[160*19+si], dl
     add si, 2
     jmp topShowLoop
 
 putDecimal:
-    mov es:[160*2+si], '.'
-    mov es:[160*2+si+1], 00000111b
+    mov es:[160*19+si], '.'
+    mov es:[160*19+si+1], 00000111b
     add si, 2
     jmp topShowLoop
 
@@ -235,12 +231,12 @@ sentencesMatch PROC
     mov cx, 0
 
     mov ax, sentenceLength
-    cmp ds:[bx], ax
+    cmp ds:[bx], ax ; compare sentence lengths
     jne checkLengths
 
 topMatchSentence:
     cmp cx, ds:[bx] ; is cx the typed length
-    je exitMatchSentence
+    je exitMatchSentence    ; if so, then we exit
     mov ax, es:[di]
     cmp ds:[si], al ; is the character right?
     jne isWrong     ; if its not the right character go to end 
