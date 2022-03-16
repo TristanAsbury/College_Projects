@@ -10,16 +10,16 @@ myStack ENDS
 
 myData SEGMENT
 
-    first DB "this is torture", 0
-    second DB "i am going insane", 0
-    third DB "i am in a constant state of suffering", 0
-    fourth DB "assembly is a new torturing method", 0
-    fifth DB "the void will consume us all.", 0
-    sixth DB "this is saddening", 0
-    seventh DB "all my friends are turning into procedures", 0
-    eighth DB "this is wacky", 0
-    ninth DB "sad sad sad", 0
-    tenth DB "weeeee", 0
+    first DB "Hello, I am just a sad little computer.", 0
+    second DB "What a lovely day this is.", 0
+    third DB "Ten little bugs crawled across the floor.", 0
+    fourth DB "Climb at a high rate and you may stall!", 0
+    fifth DB "Assembly is simply something that takes time to learn.", 0
+    sixth DB "The more you use assembly, the more you turn into a computer.", 0
+    seventh DB "I think all of my friends are turning into procedures.", 0
+    eighth DB "Amino acids are essential to prevent muscle catabolism.", 0
+    ninth DB "I need to use my arduino more! LEDs are fun.", 0
+    tenth DB "Raising the major 3rd by a semitone creates a sus4 chord.", 0
     
     correctFlag DB 0        ; keeps track if the sentence is correct
     insertFlag DB 1         ; insert mode is enabled by default
@@ -32,7 +32,7 @@ myData SEGMENT
     currentTime DW 0        ; the amount of tenths of seconds
     startTime DW 0          ; the starting time
 
-    maxTime equ 100          ; in tenths of seconds
+    maxTime equ 1           ; time limit (in minutes)
 
 myData ENDS
 
@@ -91,6 +91,7 @@ startTimer ENDP
 
 ;=========================================
 updateTimer PROC
+    push ax bx cx
     cmp isPlaying, 1        ; is the user currently in the game?
     jne exitUpdateTimer     ; if not, then don't update the timer
 
@@ -98,10 +99,18 @@ updateTimer PROC
     call getTimeLapseTenths ; returns, in ax, the tenths of seconds since start time
     push ax                 ; push those tenths of seconds onto stack as an argument for showing time
     call showTime           ; call show time
-    cmp ax, maxTime         ; compare the current time to the max time
+
+    mov bx, ax              ; make bx hold the millis
+
+    mov ax, 600             ; make ax 600 millis
+    mov cx, maxTime         ; make cx the number of minutes (1 by default)
+    mul cx                  ; multiply
+
+    cmp bx, ax              ; compare the current time to the max time
     je exit                 ; if current time is equal to max tenths, then exit the program
     
 exitUpdateTimer:
+    pop cx bx ax
     ret
 updateTimer ENDP
 ;=========================================
@@ -356,10 +365,17 @@ processKey PROC
     cmp al, 8           ; check if backspace
     je handleBackspace
 
+    cmp ah, 3bh
+    je handleF1
+
     cmp al, 0e0h
     je handleAuxiliary
 
     call doRegularKey   ; if its none of the important keys, handle it
+    jmp bottom
+
+handleF1:
+    call restartGame
     jmp bottom
 
 handleBackspace:
@@ -382,6 +398,8 @@ restartGame PROC
     mov cursorPos, 0    ; mov cursor to beginning
     mov typedLength, 0  ; make typed length 0
     mov isPlaying, 0    ; the player hasn't started typing
+    push 0
+    call showTime           ; call show time
     ret
 restartGame ENDP
 ;=========================================
@@ -437,18 +455,11 @@ doAuxiliary PROC
     cmp ah, 52h
     je handleInsertPress
 
-    cmp ah, 59h
-    je handleF1
-
 goLeft:
     cmp cursorPos, 0    ; are we at the beginning?
     je doneArrow        ; if we are, cant move anymore
     sub cursorPos, 2    ; if not, then move to the left
     jmp doneArrow       
-
-handleF1:
-    call restartGame
-    jmp doneArrow
 
 goRight:
     mov ax, typedLength
