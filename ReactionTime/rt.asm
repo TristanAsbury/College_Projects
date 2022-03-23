@@ -1,13 +1,13 @@
 ;=================
 myStack SEGMENT STACK
-    DB 256 DUP ?
+    DB 256 DUP (?)
 myStack ENDS
 ;=================
 
 ;=================
 myData SEGMENT
-    randomLetters DW 3 DUP ?
-    
+    randomLetters DB 3 DUP (?)
+    typedLetters DB 3 DUP (?)
 myData ENDS
 ;=================
 
@@ -56,19 +56,60 @@ pickRandomChar PROC
 
     ; once we have a new character, then display it somewhere random on the screen
     ; do this by using the random number generator, 
-    push ax
+    push ax bx si di
+    mov bx, 0   ; this keeps count of how many successful characters have been pushed into 'randomLetters'
+    lea si, randomLetters   ; pointing to the first character at 'randomLetters'
+    mov di, 160
 
-    push byte ptr 26
-    call getRandomNumber
-    add sp, 1
+topPickChar:
+    cmp bx, 3
+    je exitPickRandomChar
 
-    add al, 'a'
-    mov es:[160], byte ptr al
-    mov es:[161], byte ptr 00001111b
+    push byte ptr 26    ; high range of getRandomNumber
+    call getRandomNumber; puts random number 0-25 in ah
+    add sp, 2           ; "clears" stack
+    add ah, 'a'         ; adds 'a' so we can get the actual character
+    
+    push ax             ; preserve ax (containing the character)
+    call letterInList   ; ax will contain 1 if the letter is already in the 'randomLetters'
+    cmp ax, 1           ; is ax 1?
+    pop ax              ; get character back
+    je topPickChar      ; if so, then goBack to top wihtout adding the character
 
-    pop ax
+    mov es:[di], byte ptr ah    ; else, put the character on the screen
+    mov es:[di+1], byte ptr 00001111b
+    add di, 2
+    inc bx
+    jmp topPickChar
+
+exitPickRandomChar:
+    pop di si bx ax
     ret
 pickRandomChar ENDP
+;=====================
+
+;=====================
+letterInList PROC
+; on entry:
+;   ah: contains the character we are looking for
+    push si cx
+    lea si, randomLetters   ; si is pointing to the randomLetter list
+    mov cx, 0               ; cx is our counter (also the offset for si)
+    mov ax, 0
+
+topLetterInList:
+    cmp cx, 3               ; are we at the end of the character list?
+    je exitLetterInList     ; if so, exit this proc
+    add si, cx              ; else, add the offset to si
+    cmp ds:[si], ah         ; compare, is the character at ds:[si] the same as the one we are looking for
+    inc cx                  ; inc cx
+    jne topLetterInList     ; if they arent equal, go to next character
+    mov ax, 1               ; else, move into ax, 1
+
+exitLetterInList:
+    pop cx si 
+    ret
+letterInList ENDP
 ;=====================
 
 ;=========================================
@@ -77,14 +118,16 @@ getRandomNumber PROC
     mov bp, sp
     push bx
 
-    mov ah, 00h
-    int 1ah     ; get the current ticks
+    mov ah, 00h ; stores low order of ticks in DX
+    int 1ah
 
-    mov bl, [bp+3]  ; mov the max bound into bl
+    mov ax, dx  ; AH contains remainder, put that into dx
+    mov ah, 0   ; put 0 into ah
 
-    mov ax, dx  ; ax now contains the low end of ticks
-    mov ah, 0   ; put 0 into ah, low low end of ticks
-    div bl      ; divide ax by the upper limite
+    mov bl, 26  ; move 10 into bl
+    div bl      ; divide ax by 10
+
+    mov al, 0
 
     pop bx bp
     ret
