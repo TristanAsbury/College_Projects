@@ -8,9 +8,8 @@ import javax.swing.JOptionPane;
 public class ConnectionToServer implements Runnable {
     Talker talker;
     Socket socket;
-
+    
     public ConnectionToServer(String id){
-
         try {
             socket = new Socket("localhost", 1234);
         } catch (IOException io){
@@ -21,6 +20,7 @@ public class ConnectionToServer implements Runnable {
 
         try {
             talker = new Talker(socket, id);
+            send(id);   //Sends the id to the server
         } catch (IOException io){
             System.out.println("[Connection To Server] Error connecting to server!");
             System.exit(0);

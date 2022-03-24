@@ -45,7 +45,7 @@ public class GUI extends JFrame implements ActionListener {
         if(e.getSource() == sendButton){
             //Get text, and if it's not empty, send it
             if(inputField.getText().trim() != ""){
-                
+                cts.send(inputField.getText());
             }
         }
     }
