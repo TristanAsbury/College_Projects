@@ -24,4 +24,4 @@ public class Main {
             System.out.println("Problem opening server socket!");
         }
     }
-}
+}s
