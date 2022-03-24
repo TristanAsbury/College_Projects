@@ -7,7 +7,7 @@ import java.util.Vector;
 public class ConnectionToClient implements Runnable {
     Talker talker;
     Vector<ConnectionToClient> ctcs;
-    String id;
+    public String id;
     boolean receiving;
 
     public ConnectionToClient(Socket socket, Vector<ConnectionToClient> ctcs){
@@ -33,12 +33,20 @@ public class ConnectionToClient implements Runnable {
     public void receive(){
         try{
             String msg = talker.receive();
-            
-
+            broadcast(msg);
             System.out.println("[Connection To Client] " + id + " Received: " + msg);
         } catch (IOException io){
             System.out.println("[Connection To Client] " + id + " Problem receiving message from client.");
+            receiving = false;
             ctcs.remove(this);
+        }
+    }
+
+    public void broadcast(String msg){
+        for(ConnectionToClient ctc : ctcs){
+            if(!(ctc.id.equals(this.id))){
+                ctc.send(id + ": " + msg);
+            }
         }
     }
 
