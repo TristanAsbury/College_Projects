@@ -25,7 +25,6 @@ class Main {
 
                 ConnectionToClient tempConnection = new ConnectionToClient(tempSocket, ctcs);
                 ctcs.add(tempConnection);   //Adds this connection to list of client connections
-                
             } catch (IOException io){
                 System.out.println("Error connecting to that client...");
             }

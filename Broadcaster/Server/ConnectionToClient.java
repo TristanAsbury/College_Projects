@@ -8,6 +8,7 @@ public class ConnectionToClient implements Runnable {
     Talker talker;
     Vector<ConnectionToClient> ctcs;
     String id;
+    boolean receiving;
 
     public ConnectionToClient(Socket socket, Vector<ConnectionToClient> ctcs){
         try {
@@ -15,25 +16,29 @@ public class ConnectionToClient implements Runnable {
             this.id = talker.receive(); //Receives the first message which will be the id from the client
             System.out.println("[Connection To Client] Client id is: " + id);   //Gets the id
             this.ctcs = ctcs;
-            new Thread(this).start();
         } catch (IOException io){
             System.out.println("Problem connecting to client...");
         }
+
+        receiving = true;
+        new Thread(this).start();
     }
 
     public void run(){
-        try {
-            String msg = talker.receive();
-            System.out.println("[Connection To Client] Received: " + msg);
+        while(receiving){
+            receive();
+        }
+    }
 
-            // for(ConnectionToClient ctc : ctcs){
-            //     if(ctc != this){
-            //         ctc.send(id + ": " + msg);
-            //     }
-            // }
+    public void receive(){
+        try{
+            String msg = talker.receive();
+            
+
+            System.out.println("[Connection To Client] " + id + " Received: " + msg);
         } catch (IOException io){
-            System.out.println("[Connection To Client] Problem receiving message from client.");
-            ctcs.remove(this);  //If there is a problem, remove ourself from the list of ctcs so the server doesn't send messages to us (we are forgotten :( )
+            System.out.println("[Connection To Client] " + id + " Problem receiving message from client.");
+            ctcs.remove(this);
         }
     }
 
