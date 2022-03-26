@@ -14,14 +14,15 @@ public class GUI extends JFrame implements ActionListener {
 
 
     public GUI(String id){
-        cts = new ConnectionToServer(id);   //Create connection to the server.
+        message = new JLabel("");
+
+        cts = new ConnectionToServer(id, message);   //Create connection to the server.
         inputPanel = new JPanel();
 
         inputField = new JTextField(20);
         sendButton = new JButton("Send");
         sendButton.addActionListener(this);
-        message = new JLabel("");
-
+        
         inputPanel.add(inputField);
         inputPanel.add(sendButton);
         inputPanel.add(message);

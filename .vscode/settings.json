@@ -1,6 +1,6 @@
 {
     "java.project.sourcePaths": [
-        "EmailNotifier"
+        "Broadcaster"
     ],
     "java.project.referencedLibraries": [
         "lib/**/*.jar",

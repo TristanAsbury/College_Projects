@@ -3,15 +3,18 @@ package Client;
 import java.io.*;
 import java.net.*;
 
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 
 public class ConnectionToServer implements Runnable {
     Talker talker;
     Socket socket;
+    JLabel messageLabel;
     
-    public ConnectionToServer(String id){
+    public ConnectionToServer(String id, JLabel messageLabel){
         try {
             socket = new Socket("localhost", 1234);
+            this.messageLabel = messageLabel;
         } catch (IOException io){
             System.out.println("[Connection To Server] Couldn't establish a connection to the server. Exiting");
             JOptionPane.showMessageDialog(null, "Error connecting to server. Exiting.");
@@ -50,6 +53,6 @@ public class ConnectionToServer implements Runnable {
     }
 
     public void handleMessage(String msg){
-        System.out.println(msg);
+        messageLabel.setText(msg);
     }
 }
