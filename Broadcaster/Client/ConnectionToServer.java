@@ -1,4 +1,4 @@
-package Client;
+//package Client;
 
 import java.io.*;
 import java.net.*;
@@ -8,25 +8,29 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 public class ConnectionToServer implements Runnable {
-    Talker talker;
-    Socket socket;
-    JLabel messageLabel;
+    private Talker talker;
+    private Socket socket;
+    private JLabel messageLabel;
+    private String id;
+
+    boolean keepReceiving;
     
     public ConnectionToServer(String id, JLabel messageLabel){
         try {
-            socket = new Socket("localhost", 1234);
-            this.messageLabel = messageLabel;
+            socket = new Socket("localhost", 1234); //Try sending a request to the server
+            this.messageLabel = messageLabel;       //If that succeeded, then set our references
+            this.id = id;                           //
+            this.keepReceiving = true;              //We will be receiving
         } catch (IOException io){
             System.out.println("[Connection To Server] Couldn't establish a connection to the server. Exiting");
-            JOptionPane.showMessageDialog(null, "Error connecting to server. Exiting.");
+            JOptionPane.showMessageDialog(null, "Error connecting to the server. Exiting.");    //Show message dialog if there was a problem, and exit the program.
             System.exit(0);
         }
 
         try {
             talker = new Talker(socket, id);
-            send(id);   //Sends the id to the server
         } catch (IOException io){
-            System.out.println("[Connection To Server] Error connecting to server!");
+            JOptionPane.showMessageDialog(null, "Error connecting to the server. The program will exit!");  //Show message dialog if there was a problem, and exit the program.
             System.exit(0);
         }
 
@@ -34,12 +38,16 @@ public class ConnectionToServer implements Runnable {
     }
 
     public void run(){
-        try {
-            String msg = talker.receive();
-            handleMessage(msg);
-        } catch (IOException io){
-            System.out.println("[Connection To Server] Error receiving message from server. Exiting.");
-            System.exit(0);
+        send(id);   //Sends the id to the server
+
+        while(keepReceiving){
+            try {
+                String msg = talker.receive();
+                handleMessage(msg);
+            } catch (IOException io){
+                JOptionPane.showMessageDialog(null, "Error receiving message from server. The program will exit!"); //Show message dialog if there was a problem, and exit the program.
+                System.exit(0);
+            }
         }
     }
 
@@ -48,13 +56,18 @@ public class ConnectionToServer implements Runnable {
         try {
             talker.send(msg);
         } catch (IOException io){
-            System.out.println("[Connection to Server] Problem sending message to server.");
+            JOptionPane.showMessageDialog(null, "Error sending message to server. The program will exit!"); //Show message dialog if there was a problem, and exit the program.
             System.exit(0);
         }
     }
 
-    public void handleMessage(String msg){
-        SwingUtilities.invokeLater(this);
-        messageLabel.setText(msg);
+    private void handleMessage(String msg){
+        SwingUtilities.invokeLater(new Runnable()
+        {
+            public void run()
+            {
+                messageLabel.setText(msg);
+            }
+        });
     }
 }
