@@ -5,6 +5,7 @@ import java.net.*;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 public class ConnectionToServer implements Runnable {
     Talker talker;
@@ -53,6 +54,7 @@ public class ConnectionToServer implements Runnable {
     }
 
     public void handleMessage(String msg){
+        SwingUtilities.invokeLater(this);
         messageLabel.setText(msg);
     }
 }
