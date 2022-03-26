@@ -8,6 +8,9 @@ myStack ENDS
 myData SEGMENT
     randomLetters DB 3 DUP (?)
     typedLetters DB 3 DUP (?)
+    seed DW 1
+    targetWaitTime DW (?)
+    
 myData ENDS
 ;=================
 
@@ -23,6 +26,10 @@ main PROC
     ; clear screen
     call clearScreen
     call pickRandomChar
+    call waitTime
+    call scatterChars
+
+topMainLoop:
 
     mov ah, 4ch
     int 21h
@@ -64,21 +71,16 @@ pickRandomChar PROC
 topPickChar:
     cmp bx, 3
     je exitPickRandomChar
-
-    push byte ptr 26    ; high range of getRandomNumber
-    call getRandomNumber; puts random number 0-25 in ah
+    push word ptr 26    ; high range of getRandomNumber
+    call getRandomNumber; puts random number 0-25 in AX
     add sp, 2           ; "clears" stack
-    add ah, 'a'         ; adds 'a' so we can get the actual character
-    
-    push ax             ; preserve ax (containing the character)
-    call letterInList   ; ax will contain 1 if the letter is already in the 'randomLetters'
-    cmp ax, 1           ; is ax 1?
-    pop ax              ; get character back
-    je topPickChar      ; if so, then goBack to top wihtout adding the character
+    mov ah, 0           ; clear ah
+    add al, 'a'         ; adds 'a' so we can get the actual character
+    call letterInList   ; AX will contain 1 if the letter is already in the 'randomLetters'
+    jc topPickChar      ; if the carry flag is true, then that means we found that character, jump back to top
+    mov ds:[si], al
+    inc si
 
-    mov es:[di], byte ptr ah    ; else, put the character on the screen
-    mov es:[di+1], byte ptr 00001111b
-    add di, 2
     inc bx
     jmp topPickChar
 
@@ -91,28 +93,27 @@ pickRandomChar ENDP
 ;=====================
 letterInList PROC
 ; on entry:
-;   ah: contains the character we are looking for
-    push si cx
-    lea si, randomLetters   ; si is pointing to the randomLetter list
-    mov cx, 0               ; cx is our counter (also the offset for si)
-    mov ax, 0
+;   AL: contains the character we are looking for
+; on exit:
+;   Carry flag will be true if its found
+    cmp al, randomLetters
+    je foundDuplicate
+    cmp al, randomLetters+1
+    je foundDuplicate
+    cmp al, randomLetters+2
+    jne notFound
 
-topLetterInList:
-    cmp cx, 3               ; are we at the end of the character list?
-    je exitLetterInList     ; if so, exit this proc
-    add si, cx              ; else, add the offset to si
-    cmp ds:[si], ah         ; compare, is the character at ds:[si] the same as the one we are looking for
-    inc cx                  ; inc cx
-    jne topLetterInList     ; if they arent equal, go to next character
-    mov ax, 1               ; else, move into ax, 1
+foundDuplicate:
+    stc
+    ret
 
-exitLetterInList:
-    pop cx si 
+notFound:
+    clc
     ret
 letterInList ENDP
 ;=====================
 
-;=========================================
+;=====================
 getRandomNumber PROC
     push bp
     mov bp, sp
@@ -121,18 +122,98 @@ getRandomNumber PROC
     mov ah, 00h ; stores low order of ticks in DX
     int 1ah
 
-    mov ax, dx  ; AH contains remainder, put that into dx
-    mov ah, 0   ; put 0 into ah
+    mov ax, dx
+    mov bx, seed    ; move the previous seed into bx
+    mul bx          
+    add ax, 1123    ; add large prime number
 
-    mov bl, 26  ; move 10 into bl
-    div bl      ; divide ax by 10
+    ; the process above is equal to: a*r0+b where a and b are large prime numbers
+    
+    mov dx, 0       ; clear dx of any thing to allow for a divide
 
-    mov al, 0
+    mov bx, [bp+4]  ; move the high bound into bl
+    div bx          ; divide ax by the high bound
+
+    mov ax, dx  ; put remainder into ax
+    mov seed, ax    ; make the seed the last result
 
     pop bx bp
     ret
 getRandomNumber ENDP
-;=========================================
+;=====================
+
+;=====================
+scatterChars PROC
+    push ax di
+    ; MAKE THIS INTO A LOOP
+    push word ptr 2000
+    call getRandomNumber
+    add sp, 2
+    shl ax, byte ptr 1
+    mov di, ax
+    mov al, randomLetters
+    mov es:[di], al
+    
+    push word ptr 2000
+    call getRandomNumber
+    add sp, 2
+    shl ax, byte ptr 1
+    mov di, ax
+    mov al, randomLetters+1
+    mov es:[di], al
+    
+    push word ptr 2000
+    call getRandomNumber
+    add sp, 2
+    shl ax, byte ptr 1
+    mov di, ax
+    mov al, randomLetters+2
+    mov es:[di], al
+
+    pop di ax
+    ret
+scatterChars ENDP
+;=====================
+
+;=====================
+waitTime PROC
+    push ax bx cx
+
+    mov ah, 00h  
+    int 1ah         ; gets ticks CX:DX
+    mov ax, dx      ; ax contains low order of ticks
+
+    mov bx, 55      ; mov 55 into bx
+    mul bx          ; multiply by 55 to get milliseconds
+    
+    mov bx, word ptr 100
+    div bx          ; divide by 100 to get 10ths of seconds
+    mov cx, ax      ; cx now contains the 10ths of seconds
+
+    push word ptr 30
+    call getRandomNumber ; ax will contain 0 - 30
+    add ax, 30           ; ax will contain 30 - 60 (3 to 6 seconds)
+    add cx, ax
+    mov targetWaitTime, cx
+
+topWaitLoop:
+    mov ah, 00h  
+    int 1ah         ; gets ticks CX:DX
+    mov ax, dx      ; ax contains low order of ticks
+    mov bx, 55      ; mov 55 into bx
+    mul bx          ; multiply by 55 to get milliseconds
+    mov bx, 100
+    div bx          ; divide by 100 to get 10ths of seconds
+    cmp targetWaitTime, ax
+    jge exitWaitLoop
+    jmp topWaitLoop
+
+exitWaitLoop:
+    pop cx bx ax
+    ret
+waitTime ENDP
+;=====================
+
 
 myCode ENDS
 
