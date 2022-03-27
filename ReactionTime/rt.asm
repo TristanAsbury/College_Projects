@@ -1,22 +1,25 @@
-;=================
+;=====================
 myStack SEGMENT STACK
     DB 256 DUP (?)
 myStack ENDS
-;=================
+;=====================
 
-;=================
+;=====================
 myData SEGMENT
     randomLetters DB 3 DUP (?)
-    typedLetters DB 3 DUP (?)
+    copiedLetters DB 3 DUP (?)
     seed DW 1
     targetWaitTime DW (?)
+    numCorrect DB 0
+
     
 myData ENDS
-;=================
+;=====================
 
 myCode SEGMENT
     assume ds: myData, cs: myCode
 
+;=====================
 main PROC
     mov ax, 0b800h
     mov es, ax
@@ -25,16 +28,103 @@ main PROC
 
     ; clear screen
     call clearScreen
-    call pickRandomChar
+    call pickRandomChars
+    call copyChars
     call waitTime
     call scatterChars
 
 topMainLoop:
+    call showCorrect
+    call showLetterSets
+    mov ah, 11h
+    int 16h
+    jz topMainLoop
+    mov ah, 10h
+    int 16h ; get key from buffer
+    cmp al, 27
+    je exitMain
+    call handleChar
+    jmp topMainLoop
 
-    mov ah, 4ch
-    int 21h
+exitMain:
+    call endGame
 
 main ENDP
+;=====================
+
+;=====================
+showCorrect PROC
+    push ax
+    mov al, numCorrect
+    add al, '0'
+    mov es:[160], al
+    pop ax
+    ret
+showCorrect ENDP
+;=====================
+
+;=====================
+showLetterSets PROC
+    push ax cx si di
+
+    lea si, randomLetters
+    mov di, 320
+    mov cx, 0
+topShowOriginal:
+    mov al, ds:[si]
+    mov es:[di], al         ; mov char from randomLetters onto screen space di
+    inc cx                  ; next char offset
+    inc si
+    add di, 2               ; next screen pos
+    cmp cx, 3               ; are we at last char
+    jne topShowOriginal     ; if not, then go to next char
+
+    lea si, copiedLetters   ; if so, go to copied letters
+    mov di, 480
+    mov cx, 0
+topShowCopied:
+    mov al, ds:[si]
+    mov es:[di], al         ; mov char from randomLetters onto screen space di
+    inc cx                  ; next char offset
+    inc si
+    add di, 2               ; next screen pos
+    cmp cx, 3               ; are we at last char
+    jne topShowCopied     ; if not, then go to next char
+
+    pop di si cx ax
+    ret
+showLetterSets ENDP
+;=====================
+
+;=====================
+endGame PROC
+    mov ah, 4ch
+    int 21h
+endGame ENDP
+;=====================
+
+;=====================
+copyChars PROC
+    push ax cx si di
+    lea si, randomLetters
+    lea di, copiedLetters
+    mov cx, 0
+
+topCopyLoop:
+    cmp cx, 3
+    je exitCopy
+    mov al, ds:[si] ; mov char into al
+    mov ds:[di], al ; mov char in al into ds:[di] (the copiedLetters)
+    inc si          ; go to next char in randomLetters
+    inc di          ; go to next char in copiedLetters
+    inc cx          ; inc cx
+    jmp topCopyLoop
+
+exitCopy:
+    pop di si cx ax
+    ret
+copyChars ENDP
+;=====================
 
 ;=====================
 clearScreen PROC
@@ -56,7 +146,66 @@ clearScreen ENDP
 ;=====================
 
 ;=====================
-pickRandomChar PROC
+;on entry:
+;       look at the CARRY flag, if its true, then that means the player typed a correct char
+
+handleGameState PROC
+    cmp ax, 1
+    je foundCorrectChar ; if the carry flag is true, that means the player typed a good character
+    mov numCorrect, 0   ; if they didn't, then reset the num correct
+    call copyChars      ; reset all typed chars
+    ret
+
+foundCorrectChar:
+    inc numCorrect
+    cmp numCorrect, 3
+    je playerWin
+    ret
+
+playerWin:
+    call endGame
+    ret
+
+handleGameState ENDP
+;=====================
+
+;=====================
+handleChar PROC
+; on entry:
+;   AL: contains the character we are looking for
+; on exit:
+;   Carry flag will be true if its found
+    push cx di
+
+    lea di, copiedLetters   ; di will contain address for copiedLetters
+    mov cx, 0
+
+topHandleChar:
+    cmp cx, 3
+    je charNotFound ; if we reached the end and we haven't found anything, return with carry flag = 0
+    cmp al, ds:[di] ; is the letter at di the same as what we typed?
+    je charFound    ; if so, then go to charFound
+    inc di
+    inc cx
+    jmp topHandleChar
+
+charFound:
+    mov ds:[di], byte ptr 0 ; set the char at this position to 0
+    pop di cx
+    mov ax, 1                     ; set carry flag, meaning we got a char correct
+    call handleGameState
+    ret
+
+charNotFound:
+    pop di cx
+    mov ax, 0
+    call handleGameState
+    ret
+handleChar ENDP
+;=====================
+
+;=====================
+pickRandomChars PROC
     ; use the random number generator
     ; compare that character to the characters currently in randomLetters (using a loop)
     ; if that character is already there, then find another random number, keep doing this
@@ -87,7 +236,7 @@ topPickChar:
 exitPickRandomChar:
     pop di si bx ax
     ret
-pickRandomChar ENDP
+pickRandomChars ENDP
 ;=====================
 
 ;=====================
@@ -146,28 +295,28 @@ getRandomNumber ENDP
 scatterChars PROC
     push ax di
     ; MAKE THIS INTO A LOOP
-    push word ptr 2000
+    push word ptr 1920
     call getRandomNumber
     add sp, 2
     shl ax, byte ptr 1
     mov di, ax
-    mov al, randomLetters
+    mov al, copiedLetters
     mov es:[di], al
     
-    push word ptr 2000
+    push word ptr 1920
     call getRandomNumber
     add sp, 2
     shl ax, byte ptr 1
     mov di, ax
-    mov al, randomLetters+1
+    mov al, copiedLetters+1
     mov es:[di], al
     
-    push word ptr 2000
+    push word ptr 1920
     call getRandomNumber
     add sp, 2
     shl ax, byte ptr 1
     mov di, ax
-    mov al, randomLetters+2
+    mov al, copiedLetters+2
     mov es:[di], al
 
     pop di ax
@@ -177,39 +326,30 @@ scatterChars ENDP
 
 ;=====================
 waitTime PROC
-    push ax bx cx
+    push ax bx cx dx
 
     mov ah, 00h  
     int 1ah         ; gets ticks CX:DX
-    mov ax, dx      ; ax contains low order of ticks
+                    ; dx has low order
 
-    mov bx, 55      ; mov 55 into bx
-    mul bx          ; multiply by 55 to get milliseconds
-    
-    mov bx, word ptr 100
-    div bx          ; divide by 100 to get 10ths of seconds
-    mov cx, ax      ; cx now contains the 10ths of seconds
+    mov targetWaitTime, dx  ; make that our BASE target time
 
     push word ptr 30
-    call getRandomNumber ; ax will contain 0 - 30
-    add ax, 30           ; ax will contain 30 - 60 (3 to 6 seconds)
-    add cx, ax
-    mov targetWaitTime, cx
+    call getRandomNumber    ; ax will contain 0 - 30
+    add sp, 2
+    add ax, 30              ; ax will contain 30 - 60 tenths
+    add targetWaitTime, ax
 
 topWaitLoop:
-    mov ah, 00h  
+    mov ah, 00h
     int 1ah         ; gets ticks CX:DX
-    mov ax, dx      ; ax contains low order of ticks
-    mov bx, 55      ; mov 55 into bx
-    mul bx          ; multiply by 55 to get milliseconds
-    mov bx, 100
-    div bx          ; divide by 100 to get 10ths of seconds
-    cmp targetWaitTime, ax
+
+    cmp dx, targetWaitTime 
     jge exitWaitLoop
     jmp topWaitLoop
 
 exitWaitLoop:
-    pop cx bx ax
+    pop dx cx bx ax
     ret
 waitTime ENDP
 ;=====================
