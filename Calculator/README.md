@@ -1,4 +1,4 @@
-# Broadcaster Project
+# Simple Calculator
 - Used java's simple JComponent system to create a basic user interface that allows the user to type into a textfield (which is validated during runtime)
 - Project has four simple options along with an inverse option to get the inverse:
     - Square Root
