@@ -6,6 +6,6 @@
     - Cosine
     - Log
 ### Learning Outcomes:
-✔️ Learned how to use java's different listeners
-✔️ Learned how to use button groups for radio buttons
+✔️ Learned how to use java's different listeners  
+✔️ Learned how to use button groups for radio buttons  
 ✔️ Learned how to use different layout types
