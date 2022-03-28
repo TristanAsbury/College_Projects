@@ -5,4 +5,4 @@
 - The program then displays all of these distances and the routes
 ### Learning Outcomes:
 ✔️ Learned how to implement Dijkstra's Algorithm  
-✔️ Worked on becoming comfortable with file reading in C++
+✔️ Worked on becoming comfortable with file parsing in C++
