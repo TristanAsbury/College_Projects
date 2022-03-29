@@ -42,7 +42,7 @@ topMainLoop:
     int 16h                 ; ^^
     cmp al, 27              ; is it the esc key?
     je exitMain             ; if so, exit
-    call handleChar         ; else, handle the character they typed
+    call handleKey          ; else, handle the character they typed
     jmp topMainLoop         ; go back to top
 
 exitMain:
@@ -124,7 +124,7 @@ handleGameState ENDP
 ;============================
 
 ;============================
-handleChar PROC
+handleKey PROC
 ; on entry:
 ;   AL: contains the character we are looking for
 ; on exit:
@@ -134,28 +134,29 @@ handleChar PROC
     lea di, copiedLetters   ; di will contain address for copiedLetters
     mov cx, 0
 
-topHandleChar:
+topHandleKey:
     cmp cx, 3
-    je charNotFound ; if we reached the end and we haven't found anything, return with carry flag = 0
+    je keyNotFound ; if we reached the end and we haven't found anything, return with carry flag = 0
+    and al, 11011111b
     cmp al, ds:[di] ; is the letter at di the same as what we typed?
-    je charFound    ; if so, then go to charFound
+    je keyFound    ; if so, then go to charFound
     inc di
     inc cx
-    jmp topHandleChar
+    jmp topHandleKey
 
-charFound:
+keyFound:
     mov ds:[di], byte ptr 0 ; set the char at this position to 0
     pop di cx
     mov ax, 1                     ; set carry flag, meaning we got a char correct
     call handleGameState
     ret
 
-charNotFound:
+keyNotFound:
     pop di cx
     mov ax, 0
     call handleGameState
     ret
-handleChar ENDP
+handleKey ENDP
 ;============================
 
 ;============================
@@ -169,15 +170,15 @@ topPickChar:
     cmp bx, 3
     je exitPickRandomChar
     push word ptr 26    ; high range of getRandomNumber
-    call getRandomNumber; puts random number 0-25 in AX
+    call getRandomNumber; puts random number 0-51 in AX
     add sp, 2           ; "clears" stack
     mov ah, 0           ; clear ah
-    add al, 'a'         ; adds 'a' so we can get the actual character
+    add al, 'A'         ; else, add 'A'
+
     call letterInList   ; AX will contain 1 if the letter is already in the 'randomLetters'
     jc topPickChar      ; if the carry flag is true, then that means we found that character, jump back to top
     mov ds:[si], al
     inc si
-
     inc bx
     jmp topPickChar
 
