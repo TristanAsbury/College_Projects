@@ -4,3 +4,4 @@
 ### Learning Outcomes:
 ✔️ Learned how to implement and use the Runnable interface  
 ✔️ Learned how to handle multiple concurrent clients connected to one server
+✔️ Learned how to draw and manipulate 2D graphics
