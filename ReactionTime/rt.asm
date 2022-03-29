@@ -105,8 +105,7 @@ clearScreen ENDP
 ;       look at the CARRY flag, if its true, then that means the player typed a correct char
 
 handleGameState PROC
-    cmp ax, 1
-    je foundCorrectChar ; if the carry flag is true, that means the player typed a good character
+    jc foundCorrectChar ; if the carry flag is true, that means the player typed a good character
     mov numCorrect, 0   ; if they didn't, then reset the num correct
     call copyChars      ; reset all typed chars
     ret
@@ -139,7 +138,7 @@ topHandleKey:
     je keyNotFound ; if we reached the end and we haven't found anything, return with carry flag = 0
     and al, 11011111b
     cmp al, ds:[di] ; is the letter at di the same as what we typed?
-    je keyFound    ; if so, then go to charFound
+    je keyFound     ; if so, then go to charFound
     inc di
     inc cx
     jmp topHandleKey
@@ -147,13 +146,13 @@ topHandleKey:
 keyFound:
     mov ds:[di], byte ptr 0 ; set the char at this position to 0
     pop di cx
-    mov ax, 1                     ; set carry flag, meaning we got a char correct
+    stc
     call handleGameState
     ret
 
 keyNotFound:
     pop di cx
-    mov ax, 0
+    clc
     call handleGameState
     ret
 handleKey ENDP
