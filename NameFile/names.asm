@@ -28,7 +28,8 @@ myData SEGMENT
 
     errorMessage DB 'There was an error opening the file.', '$'
 
-    fileHandle DW 0
+    inFileHandle DW 0
+    outFileHandle DW 0
 
     inFileHandle DW ?
 
@@ -54,10 +55,9 @@ main PROC
     mov es, ax
 
 topMainLoop:
-    call getNextName
-    call getNextNumber
-    ;compare the number (presumably in ax to the minNumber)
     
+    ;compare the number (presumably in ax to the minNumber)
+
     lea si, fileName
     mov di, 320
 
@@ -72,7 +72,7 @@ topLoop:
     jmp topLoop
 
 exit:
-    mov AH, 4Ch     ; These two instructions use a DOS interrupt to give control back to OS
+    mov ah, 4ch     ; These two instructions use a DOS interrupt to give control back to OS
     int 21h
 main ENDP
 ;=========================================
@@ -86,14 +86,15 @@ openFiles PROC
     lea dx, fileName
     mov al, 0
     int 21h
-    mov fileHandle, ax
-    jnc exitOpenFile
+    mov inFileHandle, ax
+    jc fileError
 
     ;create output
     mov ah, 3Ch
     lea dx, outputFileName
     mov cl, 00000000b
-    mov filehandle, ax
+    int 21h
+    mov outFileHandle, ax
     jnc exitOpenFile
 
 fileError:
@@ -107,8 +108,6 @@ exitOpenFile:
 
 openFiles ENDP
 ;=========================================
-
-
 
 ;=========================================
 copyCommandTail PROC
