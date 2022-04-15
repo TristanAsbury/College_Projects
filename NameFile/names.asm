@@ -17,11 +17,12 @@ myData SEGMENT
     numBytesRead DW ?
 
     commandTail DB 128 DUP (?)
-    
+    eoct DW ?
+
+    fileName DB 128 DUP (0) ; file name
+    minNumber DW 0  ; WORKING
+
     inFileHandle DW ?
-
-    minNumber DW ?
-
 
 myData ENDS
 
@@ -37,27 +38,22 @@ main PROC
 	mov ds, ax
 
     call copyCommandTail
-    call getFileNameAndNumber
+    call getNumber
 
     mov ax, 0b800h;
     mov es, ax
 
-    lea di, commandTail
-    mov si, 320
+    mov si, minNumber
+    mov di, 320
 
 topLoop:
-    mov al, ds:[di]
-    cmp al, 0
+    cmp si, 0
     je exit
-    mov es:[si], byte ptr al
-    mov es:[si+1], byte ptr 00001111b
-    add si, 2
-    inc di
+    mov es:[di], byte ptr 'a'
+    mov es:[di+1], byte ptr 00001111b
+    add di, 2
+    dec si
     jmp topLoop
-    
-    ; copy command tail into data seg
-
-    ;
 
 exit:
     mov AH, 4Ch     ; These two instructions use a DOS interrupt to give control back to OS
@@ -77,6 +73,8 @@ copyCommandTail PROC
     inc si              ; skip the first space
 
     lea di, commandTail ; di will contain the address of commandTail
+    mov eoct, di        ; moves the address of the first char of commandTail to eoct
+    add eoct, cx        ; adds the amount of chars to eoct
 
 topCmdTailLoop:
     cmp cx, 0           ; are we at the end?
@@ -96,7 +94,50 @@ belowCmdTail:
 copyCommandTail ENDP
 ;=========================================
 
+;=========================================
+getFileName PROC 
+    push
 
+    lea si, commandTail
+    lea di,  
+
+    pop
+    ret
+getFileName ENDP 
+;=========================================
+
+
+;=========================================
+getNumber PROC
+    push ax bx cx dx di
+    mov di, eoct    ; move the address of the last character in the command tail to di
+    dec di          ; go back one to get the one's place character
+    mov bx, 1
+    mov dx, 0
+
+topGetNumLoop:
+    mov al, ds:[di] ;get character
+    cmp al, ' ' ; is it a space
+    jle endGetNum    ; if so, we are at the end of the number
+
+    mov ah, 0   ; clear ah
+    sub ax, 48  ; get the actual number
+    mul bx      ; multiply by power of 10
+    add minNumber, ax
+
+    mov ax, bx  ; ax = 1
+    mov bx, 10  ; bx = 10
+    mul bx  ; 1 * 10 = 10
+    mov bx, ax  ; bx = 10
+    
+    dec di
+    jmp topGetNumLoop
+
+endGetNum:
+    pop di dx cx bx ax
+    ret
+getNumber ENDP
+;=========================================
 
 myCode ENDS
 
