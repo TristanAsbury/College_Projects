@@ -12,15 +12,23 @@ myStack ENDS
 ; DATA SEGMENT
 myData SEGMENT
 
-    buff DB 64 DUP (?)
+    buff DB 64 DUP (0)
     currBuffOffset DW $
     numBytesRead DW ?
 
     commandTail DB 128 DUP (?)
     eoct DW ?
-
-    fileName DB 128 DUP (0) ; file name
+    
+    currentNumberString DB 8 DUP (0)
+    currentNumber DW 0
     minNumber DW 0  ; WORKING
+
+    fileName DB 128 DUP (0) ; input file name
+    outputFileName DB 'output.txt', 0
+
+    errorMessage DB 'There was an error opening the file.', '$'
+
+    fileHandle DW 0
 
     inFileHandle DW ?
 
@@ -37,22 +45,30 @@ main PROC
     mov ax, myData      ; Make DS point to data segment
 	mov ds, ax
 
-    call copyCommandTail
-    call getNumber
+    call copyCommandTail    ; get the command tail
+    call getNumber          ; get the minimum number
+    call getFileName        ; gets the input file name
+    call openFiles          ; opens input and output file
 
     mov ax, 0b800h;
     mov es, ax
 
-    mov si, minNumber
+topMainLoop:
+    call getNextName
+    call getNextNumber
+    ;compare the number (presumably in ax to the minNumber)
+    
+    lea si, fileName
     mov di, 320
 
 topLoop:
-    cmp si, 0
+    mov al, ds:[si]
+    cmp al, 0
     je exit
-    mov es:[di], byte ptr 'a'
+    mov es:[di], al
     mov es:[di+1], byte ptr 00001111b
     add di, 2
-    dec si
+    inc si
     jmp topLoop
 
 exit:
@@ -60,6 +76,39 @@ exit:
     int 21h
 main ENDP
 ;=========================================
+
+;=========================================
+openFiles PROC
+    push ax dx
+
+    ;open input
+    mov ah, 3Dh
+    lea dx, fileName
+    mov al, 0
+    int 21h
+    mov fileHandle, ax
+    jnc exitOpenFile
+
+    ;create output
+    mov ah, 3Ch
+    lea dx, outputFileName
+    mov cl, 00000000b
+    mov filehandle, ax
+    jnc exitOpenFile
+
+fileError:
+    lea dx, errorMessage
+    mov ah, 09h
+    int 21h
+
+exitOpenFile:
+    pop dx ax
+    ret
+
+openFiles ENDP
+;=========================================
+
+
 
 ;=========================================
 copyCommandTail PROC
@@ -96,12 +145,22 @@ copyCommandTail ENDP
 
 ;=========================================
 getFileName PROC 
-    push
+    push ax si di
 
     lea si, commandTail
-    lea di,  
+    lea di, fileName
 
-    pop
+topGetFileName:
+    mov al, ds:[si]
+    cmp al, ' '
+    jle exitGetFileName
+    mov ds:[di], al
+    inc si
+    inc di
+    jmp topGetFileName
+
+exitGetFileName:
+    pop di si ax
     ret
 getFileName ENDP 
 ;=========================================
