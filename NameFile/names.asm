@@ -14,7 +14,7 @@ myData SEGMENT
 
     buff DB 64 DUP (0)
     currBuffOffset DW $
-    numBytesRead DW ?
+    numBytesRead DW 0
 
     commandTail DB 128 DUP (?)
     eoct DW ?
@@ -32,6 +32,8 @@ myData SEGMENT
     outFileHandle DW 0
 
     inFileHandle DW ?
+
+    eof DB 0
 
 myData ENDS
 
@@ -76,6 +78,51 @@ exit:
     int 21h
 main ENDP
 ;=========================================
+
+;=========================================
+; ON EXIT: AL = the next byte
+ 
+getNextByte PROC
+    push
+    mov si, currBuffOffset  ; put the buff offset address into si
+    lea dx, buff            ; dx contains address of buffer
+    add dx, numBytesRead    ; add the numBytesRead to dx
+    cmp si, dx              ; is the currBuffOffset < the last buff byte pos?
+    jl byteAvailable        ; if so, there is a byte available
+
+loadBuff:
+    mov bx, inFileHandle    ; else, we must get more
+    mov cx, 64              ; make cx 64 (num bytes we're reading)
+    lea dx, buff            ; load the address of buffer into dx
+    mov ah, 3fh             ; call interrupt to load bytes
+    int 21h                 
+    jnc goodLoadBytes       ; if the clear flag is not set, then jump to loadBytes
+    call displayError       ; 
+
+goodLoadBytes:
+    mov numBytesRead, ax    ; mov the number of bytes read to ax
+    cmp ax, 0               ; cmp the num of bytes we read
+    je eofStatus            ; if we read no bytes, we're at the end of the file
+    lea dx, buff                
+    mov currBuffOffset, dx
+    jmp byteAvailable
+
+eofStatus:
+    mov eof, 1
+    jmp endGetNextByte
+
+byteAvailable:
+    mov si, currBuffOffset
+    mov al, ds:[si]
+    inc currBuffOffset
+
+endGetNextByte:
+    pop
+    ret
+getNextByte ENDP
+;=========================================
+
+
 
 ;=========================================
 openFiles PROC
