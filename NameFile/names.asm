@@ -21,17 +21,19 @@ myData SEGMENT
     
     currentNumberString DB 8 DUP (0)
     currentNumber DW 0
+    currentName DB 22 DUP (0)
     minNumber DW 0  ; WORKING
 
     fileName DB 128 DUP (0) ; input file name
     outputFileName DB 'output.txt', 0
 
     errorMessage DB 'There was an error opening the file.', '$'
+    endOfLineMessage DB 'End of file.', '$'
 
     inFileHandle DW 0
     outFileHandle DW 0
 
-    inFileHandle DW ?
+    numBytesWritten DB 0
 
     eof DB 0
 
@@ -55,23 +57,26 @@ main PROC
 
     mov ax, 0b800h;
     mov es, ax
-
-topMainLoop:
-    
-    ;compare the number (presumably in ax to the minNumber)
-
-    lea si, fileName
     mov di, 320
 
-topLoop:
-    mov al, ds:[si]
-    cmp al, 0
-    je exit
-    mov es:[di], al
-    mov es:[di+1], byte ptr 00001111b
-    add di, 2
-    inc si
-    jmp topLoop
+topMainLoop:
+    call getNextName        
+    call getNextNumber
+    mov ax, minNumber
+    cmp currentNumber, ax
+    jg printNameCall
+    cmp eof, 1
+
+    push ax
+    mov ah, 10h
+    int 16h
+    pop ax
+
+    jne topMainLoop
+
+printNameCall:
+    call printName
+    jmp topMainLoop
 
 exit:
     mov ah, 4ch     ; These two instructions use a DOS interrupt to give control back to OS
@@ -80,10 +85,147 @@ main ENDP
 ;=========================================
 
 ;=========================================
+printName PROC
+    push ax si di
+
+    lea si, currentName
+    mov di, 320
+
+topPrintName:
+    mov al, ds:[si]
+    cmp al, 0
+    je exitPrintName
+    mov es:[di], al
+    mov es:[di+1], byte ptr 00001111b
+    add di, 2
+    inc si
+    jmp topPrintName
+
+exitPrintName:
+    pop di si ax
+    ret
+printName ENDP
+;=========================================
+
+;=========================================
+getNextName PROC
+    push di ax
+
+    call clearName  ; clear the name
+    call skipWhiteSpace ; skip white spaces
+    lea di, currentName    ; get first character of name
+topGetNameLoop:
+    call getNextByte    ; get the next byte
+    cmp al, ' ' ; is it a space?
+    jle exitGetName ; stop
+    mov ds:[di], al ; else, add that character to name
+    inc di          ; go to next character
+    jmp topGetNameLoop  ; go back to top
+
+exitGetName:
+    pop ax di
+    ret
+getNextName ENDP
+;=========================================
+
+;=========================================
+clearCurrentNumber PROC
+    push cx di
+    mov currentNumber, 0
+    mov cx, 8
+
+    lea di, currentNumberString
+
+topClearNum:
+    cmp cx, 0
+    je exitClearNum
+    mov ds:[di], byte ptr 0
+    dec cx
+    inc di
+    jmp topClearNum
+
+exitClearNum:
+    pop di cx
+    ret
+clearCurrentNumber ENDP
+;=========================================
+
+;=========================================
+clearName PROC
+    push cx di
+
+    mov cx, 22  ; we want to clear 22 space
+    lea di, currentName ; get the address of the first character of name
+
+topClearName:
+    cmp cx, 0   ; are we at the end of name
+    je exitClearName    ; if so, we are done clearing the name
+    mov ds:[di], byte ptr 0  ; replace the character with 0
+    inc di  ; go to next character
+    dec cx  ; dec cx
+    jmp topClearName    ; go back to top
+
+exitClearName:
+    pop di cx
+    ret
+clearName ENDP
+;=========================================
+
+;=========================================
+getNextNumber PROC
+    push ax di 
+
+    call clearCurrentNumber
+    call skipWhiteSpace
+    lea di, currentNumberString
+
+topGetNumberLoop:
+    call getNextByte
+    cmp al, ' '
+    jle exitGetNumber
+    mov ds:[di], al
+    inc di
+    jmp topGetNumberLoop
+
+
+exitGetNumber:
+    call convertNumber
+    pop di ax
+    ret
+getNextNumber ENDP
+;=========================================
+
+;=========================================
+writeNameToFile PROC
+    ret
+writeNameToFile ENDP
+;=========================================
+
+;=========================================
+skipWhiteSpace PROC
+    push ax
+
+topSkipWhiteSpace:
+    call getNextByte
+    cmp eof, 1
+    je whiteSpaceEOF
+    cmp al, ' '
+    jle topSkipWhiteSpace
+
+exitSkipWhiteSpace:
+    dec currBuffOffset
+    pop ax
+    ret
+
+whiteSpaceEOF:
+    call endProgram
+skipWhiteSpace ENDP
+;=========================================
+
+;=========================================
 ; ON EXIT: AL = the next byte
- 
 getNextByte PROC
-    push
+    push bx cx si 
     mov si, currBuffOffset  ; put the buff offset address into si
     lea dx, buff            ; dx contains address of buffer
     add dx, numBytesRead    ; add the numBytesRead to dx
@@ -117,16 +259,14 @@ byteAvailable:
     inc currBuffOffset
 
 endGetNextByte:
-    pop
+    pop si cx bx
     ret
 getNextByte ENDP
 ;=========================================
 
-
-
 ;=========================================
 openFiles PROC
-    push ax dx
+    push ax dx cx
 
     ;open input
     mov ah, 3Dh
@@ -145,14 +285,11 @@ openFiles PROC
     jnc exitOpenFile
 
 fileError:
-    lea dx, errorMessage
-    mov ah, 09h
-    int 21h
+    call displayError
 
 exitOpenFile:
-    pop dx ax
+    pop cx dx ax
     ret
-
 openFiles ENDP
 ;=========================================
 
@@ -211,7 +348,6 @@ exitGetFileName:
 getFileName ENDP 
 ;=========================================
 
-
 ;=========================================
 getNumber PROC
     push ax bx cx dx di
@@ -242,6 +378,67 @@ endGetNum:
     pop di dx cx bx ax
     ret
 getNumber ENDP
+;=========================================
+
+;=========================================
+convertNumber PROC
+    push ax bx si
+
+    lea si, currentNumberString
+    mov bx, 1
+
+topConvertNumLoop:
+    mov al, ds:[si]
+    cmp al, 0
+    je exitConvertNum
+
+    mov ah, 0
+    sub ax, 48
+    mul bx
+    add currentNumber, ax
+
+    mov ax, bx
+    mov bx, 10
+    mul bx
+    mov bx, ax
+
+    inc si
+    jmp topConvertNumLoop
+
+exitConvertNum:
+    pop si bx ax
+    ret
+convertNumber ENDP
+;=========================================
+
+;=========================================
+displayError PROC
+    lea dx, errorMessage
+    mov ah, 09h
+    int 21h
+
+    mov ah, 4ch
+    int 21h
+displayError ENDP
+;=========================================
+
+;=========================================
+endProgram PROC
+    lea dx, endOfLineMessage
+    mov ah, 09h
+    int 21h
+
+    mov ah, 3eh
+    mov bx, inFileHandle
+    int 21h
+
+    mov ah, 3eh
+    mov bx, outFileHandle
+    int 21h 
+
+    mov ah, 4ch
+    int 21h
+endProgram ENDP
 ;=========================================
 
 myCode ENDS
