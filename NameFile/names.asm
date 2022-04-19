@@ -88,7 +88,7 @@ writeName PROC
     mov cx, 22
     lea dx, currentName
     int 21h
-
+    
     pop dx cx bx ax
     ret
 writeName ENDP
@@ -503,4 +503,4 @@ endProgram ENDP
 
 myCode ENDS
 
-END main
+END main 
