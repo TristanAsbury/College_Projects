@@ -22,10 +22,8 @@ myData SEGMENT
     minNumber DW 0  ; WORKING
     currentNumber DW 0
 
-    currentNumberString DB 8 DUP (0)
-    numberStringLen DW 0
-
     currentName DB 20 DUP (0), 0Dh, 0Ah
+    currentNameLen DW 0
 
     fileName DB 128 DUP (0) ; input file name
     outputFileName DB 'output.txt', 0
@@ -52,40 +50,39 @@ main PROC
 	mov ds, ax
 
     call copyCommandTail    ; get the command tail
-    call getNumber          ; get the minimum number
+    call getMinNumber          ; get the minimum number
     call getFileName        ; gets the input file name
     call openFiles          ; opens input and output file
 
-    mov ax, 0b800h;
-    mov es, ax
-    mov di, 320
+    mov ax, 0b800h          ; move screen mem add into ax
+    mov es, ax              ; move add into es
 
 topMainLoop:
-    call getNextName        
-    call getNextNumber
-    mov ax, currentNumber
-    cmp ax, minNumber
-    jg callPrintName
-    cmp eof, 1
-    je exit
-    jmp topMainLoop
+    call getNextName        ; get the name
+    call getNextNumber      ; get the number
+    mov ax, currentNumber   ; mov current num into ax
+    cmp ax, minNumber       ; cmp the current number to min number
+    jg callPrintName        ; if the current number is greater than the min number, then write it to file
+    cmp eof, 1              ; make sure we're not at end of file
+    je exit                 ; if we are, end the program
+    jmp topMainLoop         ; go back to top
 
 callPrintName:
-    call writeName
-    jmp topMainLoop
+    call writeName          ; write the name
+    jmp topMainLoop         ; go back to top
 
 exit:
-    mov ah, 4ch     ; These two instructions use a DOS interrupt to give control back to OS
-    int 21h
+    call endProgram         ; end program
 main ENDP
 ;=========================================
 
 ;=========================================
 writeName PROC
     push ax bx cx dx
+
     mov ah, 40h
     mov bx, outFileHandle
-    mov cx, 22
+    mov cx, currentnameLen
     lea dx, currentName
     int 21h
     
@@ -95,141 +92,29 @@ writeName ENDP
 ;=========================================
 
 ;=========================================
-printName PROC
-    push ax cx si di
-
-    mov di, 320
-    mov cx, 22
-
-topClearPlace:
-    dec cx
-    mov es:[di], byte ptr ' '
-    mov es:[di+1], byte ptr 00001111b
-    add di, 2
-    cmp cx, 0
-    jne topClearPlace
-
-    lea si, currentName
-    mov di, 320
-
-topPrintName:
-    mov al, ds:[si]
-    cmp al, 0
-    je exitPrintName
-    mov es:[di], al
-    mov es:[di+1], byte ptr 00001111b
-    add di, 2
-    inc si
-    jmp topPrintName
-
-exitPrintName:
-    pop di si cx ax
-    ret
-printName ENDP
-;=========================================
-
-;=========================================
-printNumChars PROC
-    push cx di
-
-    mov cx, 2000
-    mov di, 160
-
-topClearScreen:
-    mov es:[di], byte ptr ' '
-    mov es:[di+1], byte ptr 00001111b
-    dec cx
-    add di, 2
-    cmp cx, 0
-    jne topClearScreen
-
-    mov di, 640
-    mov cx, currentNumber
-
-topPrintNum:
-    cmp cx, 0
-    je exitPrintNum
-    mov es:[di], byte ptr 'a'
-    mov es:[di+1], byte ptr 00001111b
-    add di, 2
-    dec cx
-    jmp topPrintNUm
-
-exitPrintNum:
-    pop di cx
-    ret
-printNumChars ENDP
-;=========================================
-
-;=========================================
 getNextName PROC
     push di ax
 
-    call clearName  ; clear the name
-    call skipWhiteSpace ; skip white spaces
-    lea di, currentName    ; get first character of name
+    mov currentNameLen, 0   ; make sure the currentNameLen is 0
+    call skipWhiteSpace     ; skip white spaces
+    lea di, currentName     ; get first character of name
+
 topGetNameLoop:
-    call getNextByte    ; get the next byte
-    cmp al, ' ' ; is it a space?
-    jle exitGetName ; stop
-    mov ds:[di], al ; else, add that character to name
-    inc di          ; go to next character
-    jmp topGetNameLoop  ; go back to top
+    call getNextByte        ; get the next byte
+    cmp al, ' '             ; is it a space?
+    jle exitGetName         ; stop
+    inc currentNameLen
+    mov ds:[di], al         ; else, add that character to name
+    inc di                  ; go to next character
+    jmp topGetNameLoop      ; go back to top
 
 exitGetName:
+    mov ds:[di], 0Dh        ; add CR LF
+    mov ds:[di+1], 0Ah
+    add currentNameLen, 2   ; accomodate
     pop ax di
     ret
 getNextName ENDP
-;=========================================
-
-;=========================================
-clearCurrentNumber PROC
-    push cx di
-    mov currentNumber, 0
-    mov numberStringLen, 0
-
-    mov cx, 8
-    lea di, currentNumberString
-
-topClearNum:
-    cmp cx, 0
-    je exitClearNum
-    mov ds:[di], byte ptr 0
-    dec cx
-    inc di
-    jmp topClearNum
-
-exitClearNum:
-    pop di cx
-    ret
-clearCurrentNumber ENDP
-;=========================================
-
-;=========================================
-clearName PROC
-    push cx di
-
-    mov cx, 20  ; we want to clear 22 space
-    lea di, currentName ; get the address of the first character of name
-
-topClearName:
-    cmp cx, 0   ; are we at the end of name
-    je exitClearName    ; if so, we are done clearing the name
-    mov ds:[di], byte ptr 0  ; replace the character with 0
-    inc di  ; go to next character
-    dec cx  ; dec cx
-    jmp topClearName    ; go back to top
-
-exitClearName:
-    pop di cx
-    ret
-clearName ENDP
-;=========================================
-
-;=========================================
-writeNameToFile PROC
-    ret
-writeNameToFile ENDP
 ;=========================================
 
 ;=========================================
@@ -237,14 +122,14 @@ skipWhiteSpace PROC
     push ax
 
 topSkipWhiteSpace:
-    call getNextByte
-    cmp eof, 1
-    je whiteSpaceEOF
-    cmp al, ' '
-    jle topSkipWhiteSpace
+    call getNextByte        ; get the next byte
+    cmp eof, 1              ; are we at the end of file?
+    je whiteSpaceEOF        ; if so, then end the program
+    cmp al, ' '             ; is it a whitespace?
+    jle topSkipWhiteSpace   ; if so, then skip it
 
 exitSkipWhiteSpace:
-    dec currBuffOffset
+    dec currBuffOffset      ; if not, then go back one in the buffer to have an available character
     pop ax
     ret
 
@@ -254,7 +139,7 @@ skipWhiteSpace ENDP
 ;=========================================
 
 ;=========================================
-; ON EXIT: AL = the next byte
+; ON EXIT: ax = the next byte
 getNextByte PROC
     push bx cx si 
     mov si, currBuffOffset  ; put the buff offset address into si
@@ -276,18 +161,19 @@ goodLoadBytes:
     mov numBytesRead, ax    ; mov the number of bytes read to ax
     cmp ax, 0               ; cmp the num of bytes we read
     je eofStatus            ; if we read no bytes, we're at the end of the file
-    lea dx, buff                
-    mov currBuffOffset, dx
-    jmp byteAvailable
+    lea dx, buff            ; load the address of buffer into dx           
+    mov currBuffOffset, dx  ; move the currBuffOffset into dx
+    jmp byteAvailable       ; goto byteAvailable
 
 eofStatus:
-    mov eof, 1
-    jmp endGetNextByte
+    mov eof, 1              ; we are at end of file
+    jmp endGetNextByte      ; get outta here
 
 byteAvailable:
-    mov si, currBuffOffset
-    mov al, ds:[si]
-    inc currBuffOffset
+    mov si, currBuffOffset  ; make si point to currentBuffOffset
+    mov al, ds:[si]         ; get the byte there
+    mov ah, 0               ; clear ah
+    inc currBuffOffset      ; go to next byte position
 
 endGetNextByte:
     pop si cx bx
@@ -297,18 +183,16 @@ getNextByte ENDP
 
 ;=========================================
 openFiles PROC
-    push ax dx cx
+    push ax dx cx           
 
-    ;open input
-    mov ah, 3Dh
+    mov ah, 3Dh             ; open input file
     lea dx, fileName
     mov al, 0
     int 21h
     mov inFileHandle, ax
     jc fileError
 
-    ;create output
-    mov ah, 3Ch
+    mov ah, 3Ch             ; create output file
     lea dx, outputFileName
     mov cl, 00000000b
     int 21h
@@ -316,7 +200,7 @@ openFiles PROC
     jnc exitOpenFile
 
 fileError:
-    call displayError
+    call displayError       ; if there was an error at all, then call this
 
 exitOpenFile:
     pop cx dx ax
@@ -359,19 +243,19 @@ copyCommandTail ENDP
 
 ;=========================================
 getFileName PROC 
-    push ax si di
+    push ax si di   
 
-    lea si, commandTail
-    lea di, fileName
+    lea si, commandTail ; load address of first char of commandtail
+    lea di, fileName    ; load address of first char of fileName
 
 topGetFileName:
-    mov al, ds:[si]
-    cmp al, ' '
-    jle exitGetFileName
-    mov ds:[di], al
-    inc si
-    inc di
-    jmp topGetFileName
+    mov al, ds:[si]     ; mov the char from command tail into al
+    cmp al, ' '         ; is it a whitespace
+    jle exitGetFileName ; if so, then exit this proc
+    mov ds:[di], al     ; mov that char into the fileName
+    inc si              ; inc to next char of command tail
+    inc di              ; inc to next char of fileName
+    jmp topGetFileName  ; repeat
 
 exitGetFileName:
     pop di si ax
@@ -380,27 +264,27 @@ getFileName ENDP
 ;=========================================
 
 ;=========================================
-getNumber PROC
+getMinNumber PROC
     push ax bx cx dx di
-    mov di, eoct    ; move the address of the last character in the command tail to di
-    dec di          ; go back one to get the one's place character
-    mov bx, 1
+    mov di, eoct        ; move the address of the last character in the command tail to di
+    dec di              ; go back one to get the one's place character
+    mov bx, 1           ; mov bx 1
     mov dx, 0
 
 topGetNumLoop:
-    mov al, ds:[di] ;get character
-    cmp al, ' ' ; is it a space
-    jle endGetNum    ; if so, we are at the end of the number
+    mov al, ds:[di]     ; get character
+    cmp al, ' '         ; is it a space
+    jle endGetNum       ; if so, we are at the end of the number
 
-    mov ah, 0   ; clear ah
-    sub ax, 48  ; get the actual number
-    mul bx      ; multiply by power of 10
+    mov ah, 0           ; clear ah
+    sub ax, 48          ; get the actual number
+    mul bx              ; multiply by power of 10
     add minNumber, ax
 
-    mov ax, bx  ; ax = 1
-    mov bx, 10  ; bx = 10
-    mul bx  ; 1 * 10 = 10
-    mov bx, ax  ; bx = 10
+    mov ax, bx          ; ax = 1
+    mov bx, 10          ; bx = 10
+    mul bx              ; 1 * 10 = 10
+    mov bx, ax          ; bx = 10
     
     dec di
     jmp topGetNumLoop
@@ -408,65 +292,33 @@ topGetNumLoop:
 endGetNum:
     pop di dx cx bx ax
     ret
-getNumber ENDP
-;=========================================
-
-;=========================================
-convertNumber PROC
-    push ax bx cx si
-
-    lea si, currentNumberString ; get address of first number char
-    mov cx, numberStringLen     ; point to the last
-    add si, cx                  
-    dec si
-
-    mov bx, 1
-
-topConvertNumLoop:
-    mov al, ds:[si] ; get the character
-    cmp cx, 0       ; are we at the beginning?
-    je exitConvertNum   ; if so, exit
-
-    mov ah, 0       ; else, move 0 to ah
-    sub ax, 48      ; get numeral value
-    mul bx          ; multiply by power of 10
-    add currentNumber, ax   ; add it to the currentNumber var
-
-    mov ax, bx      ; get next power of 10
-    mov bx, 10
-    mul bx
-    mov bx, ax
-
-    dec si          ; get the next place 
-    dec cx          ; dec cx
-    jmp topConvertNumLoop   ; go back to top
-
-exitConvertNum:
-    pop si cx bx ax
-    ret
-convertNumber ENDP
+getMinNumber ENDP
 ;=========================================
 
 ;=========================================
 getNextNumber PROC
-    push ax di 
+    push ax bx cx dx
 
-    call clearCurrentNumber ; clear the current number and number string
     call skipWhiteSpace     ; skip white spaces until we get numbers
-    lea di, currentNumberString
+    mov currentNumber, 0
 
 topGetNumberLoop:
-    call getNextByte
-    cmp al, ' '
-    jle exitGetNumber
-    mov ds:[di], al
-    inc di
-    inc numberStringLen     ; important
+    call getNextByte    ; get the next byte
+    cmp ax, ' '         ; is it white space
+    jle exitGetNumber   ; if so, then we are done getting the number
+
+    mov bx, ax          ; mov the number into bx
+    sub bx, '0'         ; get the actual numeral value
+    mov cx, 10          ; mov 10 into cl
+    mov ax, currentNumber   ; put the current number int ax
+    mul cx              ; multiply the current number by 10
+    mov dx, 0
+    mov currentNumber, ax   ; put result into currentNumber
+    add currentNumber, bx
     jmp topGetNumberLoop
 
 exitGetNumber:
-    call convertNumber
-    pop di ax
+    pop dx cx bx ax
     ret
 getNextNumber ENDP
 ;=========================================
